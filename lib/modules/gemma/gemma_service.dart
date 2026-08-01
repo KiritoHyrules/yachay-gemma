@@ -12,6 +12,7 @@ import 'package:flutter_gemma/flutter_gemma.dart'
         PreferredBackend,
         TextResponse;
 
+import '../../core/data/learning_data.dart';
 import '../../core/models/message_stats.dart';
 import '../yachay/tool_handlers/consultar_estado.dart';
 import '../yachay/tool_handlers/evaluar_respuesta.dart';
@@ -106,6 +107,7 @@ class GemmaService {
   @visibleForTesting
   void resetForTest() {
     _modeloCargado = false;
+    _currentTopic = null;
     _fallbackLoaded = false;
     _fallbackData = null;
     _dispatcher = null;
@@ -150,6 +152,17 @@ class GemmaService {
   /// explain → practice.
   static const int maxDispatchRounds = 7;
 
+  // ---- curriculum-aware topic tracking ----
+
+  /// The topic the student is currently practicing. When non-null, the system
+  /// prompt includes the specific topic and area. Updated via
+  /// [updateSystemPromptForTopic].
+  TemaPrimaria? _currentTopic;
+
+  /// Exposes [_currentTopic] for test assertions.
+  @visibleForTesting
+  TemaPrimaria? get currentTopic => _currentTopic;
+
   // ---- system prompt (spec requirement) ----
 
   static const String systemPrompt =
@@ -185,6 +198,50 @@ class GemmaService {
   /// Services set here survive registry initialization.
   void setToolContext(ToolContext ctx) {
     _toolContext = ctx;
+  }
+
+  /// Updates the system prompt to reflect the current [topic] the student
+  /// is practicing. When non-null, the prompt includes the specific topic
+  /// title and area. When null, a generic 4to primaria persona is used.
+  ///
+  /// If the model is already loaded, the chat session is rebuilt with the
+  /// updated prompt so subsequent inference uses the correct context.
+  void updateSystemPromptForTopic(TemaPrimaria? topic) {
+    _currentTopic = topic;
+    if (_modeloCargado) {
+      // Rebuild the chat session so the new system prompt takes effect.
+      _rebuildChat();
+    }
+  }
+
+  /// Returns the human-readable label for a curriculum area code.
+  static String _areaLabel(String area) {
+    switch (area) {
+      case 'comunicacion':
+        return 'comunicación';
+      case 'matematica':
+        return 'matemática';
+      case 'ciencia':
+        return 'ciencia';
+      default:
+        return area;
+    }
+  }
+
+  /// Rebuilds the chat session with the current system prompt (topic-aware).
+  /// Safe to call even if the chat was never created.
+  Future<void> _rebuildChat() async {
+    try {
+      await _adapter.close();
+      await _adapter.createChat(
+        systemInstruction: _yachaySystemPrompt(),
+        maxOutputTokens: SamplingConfig.maxTokens,
+        tools: const [],
+      );
+    } catch (e) {
+      debugPrint('GemmaService: rebuildChat failed — $e');
+      _modeloCargado = false;
+    }
   }
 
   // ---- public API ----
@@ -560,17 +617,34 @@ class GemmaService {
   }
 
   String _yachaySystemPrompt() {
-    return useYachayOrchestrator
-        ? 'Eres Yachay, un asistente de estudio para estudiantes de '
-            'primaria en Perú. Tu trabajo es ayudar al estudiante a '
-            'comprender los temas del currículo escolar con explicaciones '
-            'claras, ejemplos del contexto peruano (soles, mercados, chacras) '
-            'y ejercicios prácticos. Si el estudiante se desvía del tema de '
-            'estudio, recordale amablemente retomar la lección. Ofrecé ayuda '
-            'paso a paso. Celebrá sus logros con entusiasmo. '
-            'Nunca uses calificaciones negativas.'
-        : 'Eres Aprendo+, un tutor de matemáticas para secundaria en Perú. '
-            'Explicá con claridad, paciencia y ejemplos del contexto local.';
+    if (!useYachayOrchestrator) {
+      return 'Eres Aprendo+, un tutor de matemáticas para secundaria en Perú. '
+          'Explicá con claridad, paciencia y ejemplos del contexto local.';
+    }
+
+    final topic = _currentTopic;
+    if (topic != null) {
+      final areaLabel = _areaLabel(topic.area);
+      return 'Eres Yachay, un tutor para estudiantes de 4to de primaria '
+          'en Perú. El estudiante está practicando ${topic.titulo} '
+          'de $areaLabel. '
+          'Tu trabajo es ayudar al estudiante a '
+          'comprender los temas del currículo escolar con explicaciones '
+          'claras, ejemplos del contexto peruano (soles, mercados, chacras) '
+          'y ejercicios prácticos. Si el estudiante se desvía del tema de '
+          'estudio, recordale amablemente retomar la lección. Ofrecé ayuda '
+          'paso a paso. Celebrá sus logros con entusiasmo. '
+          'Nunca uses calificaciones negativas.';
+    }
+
+    return 'Eres Yachay, un asistente de estudio para estudiantes de '
+        '4to de primaria en Perú. Tu trabajo es ayudar al estudiante a '
+        'comprender los temas del currículo escolar con explicaciones '
+        'claras, ejemplos del contexto peruano (soles, mercados, chacras) '
+        'y ejercicios prácticos. Si el estudiante se desvía del tema de '
+        'estudio, recordale amablemente retomar la lección. Ofrecé ayuda '
+        'paso a paso. Celebrá sus logros con entusiasmo. '
+        'Nunca uses calificaciones negativas.';
   }
 
   bool _esSaludo(String message) {

@@ -109,6 +109,9 @@ class _YachayScaffoldState extends State<YachayScaffold> {
       _consecutiveCorrect = mastery?.consecutiveCorrect ?? 0;
       _suggestionChips = List<String>.from(_currentTopic!.chips);
       _updateSessionSummary();
+
+      // REQ-08: Update Gemma's system prompt with the selected topic.
+      _gemmaService.updateSystemPromptForTopic(_currentTopic);
     }
 
     if (mounted) setState(() {});
@@ -160,6 +163,9 @@ class _YachayScaffoldState extends State<YachayScaffold> {
 
       _updateSessionSummary();
     });
+
+    // REQ-08: Update Gemma's system prompt with the new topic.
+    _gemmaService.updateSystemPromptForTopic(next);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

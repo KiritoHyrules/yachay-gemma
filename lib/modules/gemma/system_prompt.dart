@@ -1,3 +1,4 @@
+import '../../core/data/learning_data.dart';
 import 'tool_registry.dart';
 
 /// Builds the system prompt that instructs the model on tutoring behavior
@@ -85,6 +86,10 @@ class SystemPrompt {
 
   /// Builds the Yachay Socratic tutor system prompt for the given [tools].
   ///
+  /// [currentTopic] enriches the persona with the specific area and topic
+  /// the student is currently practicing. When null, a generic 4to de primaria
+  /// persona is used.
+  ///
   /// Encodes the Yachay persona (Peruvian Spanish, Quechua-influenced terms,
   /// Socratic method) and the tool list. Tool calling is native; the prompt
   /// only states when to use each tool, never an XML action format.
@@ -96,16 +101,29 @@ class SystemPrompt {
   /// 4. Reference mastered topics by name from `student_mastery`.
   /// 5. Suggest next steps via `obtener_siguiente_tema`.
   /// 6. Use Peruvian context examples (soles, mercados, chacras, cevicherías).
-  static String buildYachay(List<ToolSpec> tools) {
+  static String buildYachay(List<ToolSpec> tools,
+      {TemaPrimaria? currentTopic}) {
     final buffer = StringBuffer();
 
-    // --- Yachay Persona ---
-    buffer.writeln(
-      'Eres Yachay, un tutor socrático de aritmética para estudiantes '
-      'de 1° de secundaria en Perú. "Yachay" significa sabiduría en quechua. '
-      'Tu misión es guiar a los estudiantes a descubrir el conocimiento '
-      'por sí mismos, nunca dándoles respuestas directas.',
-    );
+    // --- Yachay Persona (curriculum-aware) ---
+    if (currentTopic != null) {
+      final areaLabel = _areaLabel(currentTopic.area);
+      buffer.writeln(
+        'Eres Yachay, un tutor socrático para estudiantes '
+        'de 4to de primaria en Perú. "Yachay" significa sabiduría en quechua. '
+        'El estudiante está practicando ${currentTopic.titulo} '
+        'de $areaLabel. '
+        'Tu misión es guiar a los estudiantes a descubrir el conocimiento '
+        'por sí mismos, nunca dándoles respuestas directas.',
+      );
+    } else {
+      buffer.writeln(
+        'Eres Yachay, un tutor socrático para estudiantes '
+        'de 4to de primaria en Perú. "Yachay" significa sabiduría en quechua. '
+        'Tu misión es guiar a los estudiantes a descubrir el conocimiento '
+        'por sí mismos, nunca dándoles respuestas directas.',
+      );
+    }
     buffer.writeln();
     buffer.writeln(
       'Usá un español peruano cálido y cercano, con palabras del quechua '
@@ -131,7 +149,8 @@ class SystemPrompt {
     buffer.writeln(
       '4. Usá ejemplos del contexto peruano: soles, mercados, chacras, cevicherías.',
     );
-    buffer.writeln('5. Nunca digas "está mal". Decí "casi, probá de otra manera".');
+    buffer.writeln(
+        '5. Nunca digas "está mal". Decí "casi, probá de otra manera".');
     buffer.writeln(
       '6. NUNCA des respuestas literales a ejercicios. Guiá, no resolvás.',
     );
@@ -172,6 +191,20 @@ class SystemPrompt {
     );
 
     return buffer.toString();
+  }
+
+  /// Returns the human-readable label for a curriculum area code.
+  static String _areaLabel(String area) {
+    switch (area) {
+      case 'comunicacion':
+        return 'comunicación';
+      case 'matematica':
+        return 'matemática';
+      case 'ciencia':
+        return 'ciencia';
+      default:
+        return area;
+    }
   }
 
   /// Plain-text call example for [toolName] with its [params].
