@@ -1,0 +1,26 @@
+# Flutter
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+*.lock
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# iOS
+ios/Pods/
+ios/build/
+
+# Reference projects (nested repos)
+Proyecto referencia/
+
+# Vendored (nested repos)
+android/app/src/main/cpp/llama.cpp/
+# Local Pi runtime state
+.atl/
