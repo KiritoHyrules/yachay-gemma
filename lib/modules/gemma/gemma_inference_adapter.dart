@@ -96,7 +96,7 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
       systemInstruction: systemInstruction,
       maxOutputTokens: maxOutputTokens,
       tools: tools,
-      toolChoice: ToolChoice.auto,
+      toolChoice: tools.isEmpty ? ToolChoice.none : ToolChoice.auto,
     );
   }
 
