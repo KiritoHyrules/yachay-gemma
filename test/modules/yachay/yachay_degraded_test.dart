@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
+import 'package:aprendo_plus/core/database/database_service.dart';
+import 'package:aprendo_plus/core/state/student_state.dart';
 import 'package:aprendo_plus/modules/gemma/gemma_service.dart';
 import 'package:aprendo_plus/modules/yachay/screens/yachay_scaffold.dart';
 
@@ -14,6 +17,13 @@ import '../gemma/fakes/gemma_inference_adapter_fake.dart';
 /// `FallbackDispatcher` without crashing, and the chip MUST keep reflecting
 /// the real state — never `Listo` while the model is not operational.
 void main() {
+  // Helper: wraps a widget with the now-required Provider<StudentState>.
+  Widget wrapWithState(Widget child) {
+    return ChangeNotifierProvider<StudentState>.value(
+      value: StudentState(DatabaseService.instance),
+      child: child,
+    );
+  }
   /// Polls with plain pumps until [condition] holds. The fallback data is
   /// pre-injected via the test seam and path_provider is mocked, so the
   /// whole bootstrap chain stays in the fake-async zone — no runAsync,
@@ -53,7 +63,7 @@ void main() {
       service.setFallbackDataForTest({});
 
       await tester.pumpWidget(
-        MaterialApp(home: YachayScaffold(gemmaService: service)),
+        wrapWithState(MaterialApp(home: YachayScaffold(gemmaService: service))),
       );
       await tester.pump();
 
@@ -103,7 +113,7 @@ void main() {
           'HuggingFace. Revisa el token en la configuración.');
 
       await tester.pumpWidget(
-        MaterialApp(home: YachayScaffold(gemmaService: service)),
+        wrapWithState(MaterialApp(home: YachayScaffold(gemmaService: service))),
       );
       await tester.pump();
       expect(find.text('Error'), findsOneWidget);

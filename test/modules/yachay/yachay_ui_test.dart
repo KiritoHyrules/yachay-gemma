@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
+import 'package:aprendo_plus/core/database/database_service.dart';
+import 'package:aprendo_plus/core/state/student_state.dart';
 import 'package:aprendo_plus/modules/yachay/screens/chat_screen.dart';
 import 'package:aprendo_plus/modules/yachay/screens/yachay_scaffold.dart';
 import 'package:aprendo_plus/modules/yachay/screens/camino_screen.dart';
@@ -8,6 +11,13 @@ import 'package:aprendo_plus/modules/yachay/screens/perfil_screen.dart';
 import 'package:aprendo_plus/modules/yachay/screens/teacher_dashboard.dart';
 
 void main() {
+  // Helper: wraps YachayScaffold with the now-required Provider<StudentState>.
+  Widget wrapYachay(Widget child) {
+    return ChangeNotifierProvider<StudentState>.value(
+      value: StudentState(DatabaseService.instance),
+      child: child,
+    );
+  }
   // =========================================================================
   // Phase 3 UI: Camino + Perfil + Teacher Dashboard — widget tests
   // =========================================================================
@@ -156,7 +166,7 @@ void main() {
         'WHEN rendered '
         'THEN shows Chat, Camino, Perfil tabs', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: YachayScaffold()),
+        wrapYachay(const MaterialApp(home: YachayScaffold())),
       );
 
       // Three navigation items
@@ -174,7 +184,7 @@ void main() {
         'WHEN user taps Camino tab '
         'THEN switches to Camino screen', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: YachayScaffold()),
+        wrapYachay(const MaterialApp(home: YachayScaffold())),
       );
 
       await tester.tap(find.text('Camino'));
@@ -189,13 +199,16 @@ void main() {
         'WHEN rendered '
         'THEN app bar shows Yachay avatar and grade badge', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: YachayScaffold()),
+        wrapYachay(const MaterialApp(home: YachayScaffold())),
       );
 
       // AppBar with Yachay name
-      expect(find.text('Yachay'), findsOneWidget);
-      // Grade badge shows "1° Sec"
-      expect(find.text('1° Sec'), findsOneWidget);
+      expect(find.text('Yachay'), findsAtLeastNWidgets(1)); // AppBar + bubble avatar
+      // Grade badge now shows "4to Primaria" (REQ-05 — real data, visible on Perfil tab).
+      // Tap Perfil tab to bring the grade Chip into view.
+      await tester.tap(find.text('Perfil'));
+      await tester.pumpAndSettle();
+      expect(find.text('4to Primaria'), findsOneWidget);
     });
   });
 

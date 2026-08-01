@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 import 'package:aprendo_plus/main.dart';
+import 'package:aprendo_plus/core/database/database_service.dart';
+import 'package:aprendo_plus/core/state/student_state.dart';
 import 'package:aprendo_plus/modules/gemma/gemma_service.dart';
 import 'package:aprendo_plus/modules/yachay/screens/yachay_scaffold.dart';
 import 'package:aprendo_plus/modules/diagnostico/diagnostico_screen.dart';
@@ -16,6 +19,13 @@ Widget buildHomeScreen() {
 }
 
 void main() {
+  // Helper: wraps YachayScaffold with the now-required Provider<StudentState>.
+  Widget wrapYachay(Widget child) {
+    return ChangeNotifierProvider<StudentState>.value(
+      value: StudentState(DatabaseService.instance),
+      child: child,
+    );
+  }
   // -------------------------------------------------------------------------
   // Phase 4 Integration Tests — feature gate + app routing
   // -------------------------------------------------------------------------
@@ -49,12 +59,20 @@ void main() {
       (tester) async {
     GemmaService.useYachayOrchestrator = true;
 
-    await tester.pumpWidget(const AprendoPlusApp());
+    await tester.pumpWidget(
+      ChangeNotifierProvider<StudentState>.value(
+        value: StudentState(DatabaseService.instance),
+        child: const AprendoPlusApp(),
+      ),
+    );
 
     // After main.dart fix: YachayScaffold should render with Yachay greeting
     expect(find.textContaining('¡Hola! Soy Yachay'), findsOneWidget);
-    expect(find.text('Yachay'), findsAtLeastNWidgets(1)); // AppBar + bubble avatar
-    expect(find.text('1° Sec'), findsOneWidget); // Grade badge
+    expect(find.text('Yachay'), findsAtLeastNWidgets(1));
+    // Tap Perfil tab to verify grade badge (now computed from StudentState).
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    expect(find.text('4to Primaria'), findsOneWidget);
   });
 
   // =========================================================================
@@ -93,10 +111,14 @@ void main() {
       'WHEN ChatScreen renders '
       'THEN greeting message from Yachay is displayed',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: YachayScaffold()));
+    await tester.pumpWidget(
+      wrapYachay(const MaterialApp(home: YachayScaffold())),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('¡Hola! Soy Yachay'), findsOneWidget);
-    expect(find.textContaining('tutor de aritmética'), findsOneWidget);
+    // Greeting adapts to current topic area (com_01 = Comunicación).
+    expect(find.textContaining('tutor de comunicación'), findsOneWidget);
   });
 
   // =========================================================================
@@ -111,16 +133,19 @@ void main() {
       'WHEN tapping Camino tab '
       'THEN CaminoScreen is displayed with curriculum content',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: YachayScaffold()));
+    await tester.pumpWidget(
+      wrapYachay(const MaterialApp(home: YachayScaffold())),
+    );
+    await tester.pumpAndSettle();
 
     // Tap the Camino tab
     await tester.tap(find.text('Camino'));
     await tester.pumpAndSettle();
 
-    // CaminoScreen renders curriculum title and topic cards
+    // CaminoScreen renders curriculum title and topic cards from real data.
     expect(find.textContaining('curriculum'), findsOneWidget);
-    expect(find.text('Valor Posicional'), findsOneWidget);
-    expect(find.text('Lectura y Escritura'), findsOneWidget);
+    expect(find.text('La idea principal'), findsOneWidget);
+    expect(find.text('La inferencia simple'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsWidgets);
   });
 }
