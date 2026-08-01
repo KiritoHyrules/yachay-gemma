@@ -28,7 +28,7 @@ Future<ToolResult> generarEjerciciosHandler(
   }
 
   final data = ctx.fallbackData;
-  final cleanName = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
+  final cleanName = _stripPrefix(tema);
 
   if (data != null) {
     // Handle generic subject fallbacks — delegate to explanation to
@@ -89,6 +89,13 @@ Future<ToolResult> generarEjerciciosHandler(
       },
     ],
   );
+}
+
+/// Strips the topic-ID prefix (e.g. "M01_fracciones" → "fracciones").
+/// Uses native String methods only — zero RegExp.
+String _stripPrefix(String id) {
+  final idx = id.indexOf('_');
+  return idx >= 0 ? id.substring(idx + 1) : id;
 }
 
 /// The registered [ToolSpec] for `generar_ejercicios`.

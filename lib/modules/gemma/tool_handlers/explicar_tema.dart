@@ -26,7 +26,7 @@ Future<ToolResult> explicarTemaHandler(
   }
 
   final data = ctx.fallbackData;
-  final cleanName = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
+  final cleanName = _stripPrefix(tema);
 
   if (data != null) {
     // Handle generic subject fallbacks.
@@ -86,6 +86,13 @@ Future<ToolResult> explicarTemaHandler(
         'Cuéntame qué parte específica te interesa.',
     payload: {'tema': tema, 'nivel': nivel, 'nombre': cleanName},
   );
+}
+
+/// Strips the topic-ID prefix (e.g. "M01_fracciones" → "fracciones").
+/// Uses native String methods only — zero RegExp.
+String _stripPrefix(String id) {
+  final idx = id.indexOf('_');
+  return idx >= 0 ? id.substring(idx + 1) : id;
 }
 
 /// The registered [ToolSpec] for `explicar_tema`.

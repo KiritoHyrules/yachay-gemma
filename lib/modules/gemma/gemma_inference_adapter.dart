@@ -24,10 +24,20 @@ abstract class GemmaInferenceAdapter {
 
   /// Creates the chat session with the system prompt and registered tools
   /// (tool choice: auto).
+  ///
+  /// Sampling parameters follow the conservative educational config:
+  /// low temperature prevents hallucination in factual replies;
+  /// topK/topP constrain the token pool; repeatPenalty discourages loops.
   Future<void> createChat({
     required String systemInstruction,
     required int maxOutputTokens,
     required List<Tool> tools,
+    double temperature = 0.4,
+    int topK = 64,
+    double topP = 0.85,
+    double repeatPenalty = 1.1,
+    int tokenBuffer = 512,
+    int randomSeed = 1,
   });
 
   /// Feeds a message into the active chat session.
@@ -50,6 +60,9 @@ abstract class GemmaInferenceAdapter {
 
   /// Releases native resources. Never deletes the model file.
   Future<void> close();
+
+  /// Clears the chat session history without unloading the model.
+  Future<void> clearHistory();
 }
 
 /// Real [GemmaInferenceAdapter] backed by the flutter_gemma 1.4.2 plugin.
@@ -85,6 +98,12 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
     required String systemInstruction,
     required int maxOutputTokens,
     required List<Tool> tools,
+    double temperature = 0.4,
+    int topK = 64,
+    double topP = 0.85,
+    double repeatPenalty = 1.1,
+    int tokenBuffer = 512,
+    int randomSeed = 1,
   }) async {
     final model = _model;
     if (model == null) {
@@ -97,6 +116,8 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
       maxOutputTokens: maxOutputTokens,
       tools: tools,
       toolChoice: ToolChoice.auto,
+      tokenBuffer: tokenBuffer,
+      randomSeed: randomSeed,
     );
   }
 
@@ -157,5 +178,17 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
       }
     }
     _backend = null;
+  }
+
+  @override
+  Future<void> clearHistory() async {
+    final chat = _chat;
+    if (chat != null) {
+      try {
+        await chat.clearHistory();
+      } catch (e) {
+        debugPrint('GemmaInferenceAdapter: clearHistory failed — $e');
+      }
+    }
   }
 }

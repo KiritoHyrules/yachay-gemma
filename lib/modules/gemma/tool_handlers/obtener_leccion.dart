@@ -49,7 +49,7 @@ Future<ToolResult> obtenerLeccionHandler(
   }
 
   // Fallback: database not available.
-  final cleanName = id.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
+  final cleanName = _stripPrefix(id);
   return ToolResult(
     summary:
         'La lección "$cleanName" está disponible en la sección de '
@@ -61,6 +61,13 @@ Future<ToolResult> obtenerLeccionHandler(
       'estado': 'fuera_de_linea',
     },
   );
+}
+
+/// Strips the topic-ID prefix (e.g. "M01_fracciones" → "fracciones").
+/// Uses native String methods only — zero RegExp.
+String _stripPrefix(String id) {
+  final idx = id.indexOf('_');
+  return idx >= 0 ? id.substring(idx + 1) : id;
 }
 
 /// The registered [ToolSpec] for `obtener_leccion`.

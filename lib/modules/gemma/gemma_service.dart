@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_gemma/flutter_gemma.dart'
     show
@@ -57,10 +58,9 @@ class SamplingConfig {
   /// Repeat penalty: 1.1 — mild discouragement of token repetition.
   static const double repeatPenalty = 1.1;
 
-  /// Max output tokens per generation: 1024 — sufficient for tool-calling
-  /// and multi-step explanations (was 256). This is the `maxOutputTokens`
-  /// passed to `createChat` (generation cap, not the context window).
-  static const int maxTokens = 1024;
+  /// Max output tokens per generation: 256 — hard limit for MVP 4to Primaria
+  /// (per stakeholder constraint). Keeps generation fast on low-RAM devices.
+  static const int maxTokens = 256;
 }
 
 /// Default LiteRT model file used by `flutter_gemma`.
@@ -97,7 +97,8 @@ class GemmaService {
   /// Creates a fresh GemmaService instance for testing.
   /// Production code MUST use [instance] instead.
   @visibleForTesting
-  GemmaService.forTest({GemmaInferenceAdapter? adapter, Duration? streamTimeout})
+  GemmaService.forTest(
+      {GemmaInferenceAdapter? adapter, Duration? streamTimeout})
       : this._internal(adapter: adapter, streamTimeout: streamTimeout);
 
   /// Resets all internal state. Only for testing — production code
@@ -112,6 +113,9 @@ class GemmaService {
     _toolContext = const ToolContext();
     _registry.clearForTest();
     statusController.reset();
+    _chatSessionOpen = false;
+    _pendingClose = false;
+    _lifecycleClosed = false;
   }
 
   final GemmaInferenceAdapter _adapter;
@@ -135,6 +139,17 @@ class GemmaService {
   ToolContext _toolContext = const ToolContext();
   bool _registryInitialized = false;
 
+  // ---- lifecycle management (Fix 1: OOM prevention) ----
+
+  /// Whether the chat session is currently open in the adapter.
+  bool _chatSessionOpen = false;
+
+  /// Prevents double-close during rapid lifecycle transitions.
+  bool _pendingClose = false;
+
+  /// True when the model was closed due to app backgrounding.
+  bool _lifecycleClosed = false;
+
   // ---- persona flags ----
 
   /// When `true` (default), the Yachay Socratic tutor persona replaces the
@@ -152,8 +167,8 @@ class GemmaService {
   // ---- system prompt (spec requirement) ----
 
   static const String systemPrompt =
-      'Eres un tutor de matematicas para secundaria '
-      'en Peru. Explica conceptos de manera clara, usa ejemplos del contexto peruano '
+      'Eres un tutor de matemáticas para primaria '
+      'en Perú. Explica conceptos de manera clara, usa ejemplos del contexto peruano '
       'y mantén un tono motivador sin calificaciones negativas.';
 
   /// Writes debug info to device file. Read via adb:
@@ -186,6 +201,43 @@ class GemmaService {
     _toolContext = ctx;
   }
 
+  // ---- lifecycle handling (Fix 1: OOM prevention) ----
+
+  /// Called by the scaffold when [AppLifecycleState] changes.
+  ///
+  /// On `paused`/`detached`: closes the chat session and model to free RAM.
+  /// On `resumed`: marks the service for reload on next [cargarModelo] call.
+  /// Serialize close operations via [_pendingClose] to prevent double-free.
+  Future<void> handleLifecycleChange(AppLifecycleState state) async {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (_pendingClose) return;
+      _pendingClose = true;
+      try {
+        await _adapter.close();
+        _chatSessionOpen = false;
+        _modeloCargado = false;
+        _lifecycleClosed = true;
+      } catch (e) {
+        debugPrint('GemmaService: lifecycle close error — $e');
+      } finally {
+        _pendingClose = false;
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_lifecycleClosed) {
+        _modeloCargado = false;
+        _chatSessionOpen = false;
+      }
+    }
+  }
+
+  /// Clears the chat session history without reloading the model (Fix 2).
+  /// Much faster than full reinitialization for "new chat" functionality.
+  Future<void> clearHistory() async {
+    if (!_chatSessionOpen) return;
+    await _adapter.clearHistory();
+  }
+
   // ---- public API ----
 
   /// Loads the active model on the CPU backend and creates the 1.4.2 chat
@@ -206,7 +258,9 @@ class GemmaService {
     _inicializarRegistry();
 
     try {
-      final ok = await _adapter.loadModel(maxTokens: 8192);
+      final ok = await _adapter.loadModel(
+        maxTokens: SamplingConfig.maxTokens,
+      );
       if (!ok) {
         // No active model (first run / not installed): stay degraded. The
         // chip keeps its real state (`Sin modelo`) — never a false `Listo`.
@@ -214,11 +268,24 @@ class GemmaService {
         return false;
       }
       try {
+        // The model on this device does NOT support function calling (confirmed
+        // by the plugin warning). Create a plain-text chat session like the
+        // reference apps (gemma-vision, yachayprueba1-fc02) — no tools, just
+        // text generation. This prevents the stream from stalling during CPU
+        // prefill with a bloated tool-augmented system prompt.
         await _adapter.createChat(
-          systemInstruction: _systemInstruction(),
+          systemInstruction: _yachaySystemPrompt(),
           maxOutputTokens: SamplingConfig.maxTokens,
-          tools: _registry.toFlutterGemmaTools(),
+          tools: const [],
+          temperature: SamplingConfig.temperature,
+          topK: SamplingConfig.topK,
+          topP: SamplingConfig.topP,
+          repeatPenalty: SamplingConfig.repeatPenalty,
+          tokenBuffer: 512,
+          randomSeed: 1,
         );
+        _chatSessionOpen = true;
+        _lifecycleClosed = false;
       } catch (e) {
         debugPrint('GemmaService: createChat failed — $e. Using fallback.');
         _modeloCargado = false;
@@ -305,43 +372,10 @@ class GemmaService {
       return saludo.summary;
     }
 
-    try {
-      await _adapter.addQuery(Message.text(text: userMessage, isUser: true));
-
-      final buffer = StringBuffer();
-
-      for (var round = 1; round <= maxDispatchRounds; round++) {
-        final ronda = await _generarRonda();
-        if (ronda == null) {
-          // Empty round: the model produced nothing usable.
-          return _dispatchFallback(userMessage);
-        }
-
-        if (ronda.text != null) {
-          buffer.write(ronda.text);
-          return buffer.toString().trim();
-        }
-
-        // Tool round: execute every call and feed the result back.
-        for (final call in ronda.toolCalls!) {
-          final result =
-              await _registry.run(call.name, call.args, _toolContext);
-          buffer.write('${result.summary}\n');
-          await _adapter.addQuery(Message.toolResponse(
-            toolName: call.name,
-            response: {'summary': result.summary, 'payload': result.payload},
-          ));
-        }
-      }
-
-      // Round exhaustion: force a final text with the accumulated results.
-      final forced = buffer.toString().trim();
-      if (forced.isNotEmpty) return forced;
-      return _dispatchFallback(userMessage);
-    } catch (e) {
-      debugPrint('GemmaService: dispatch failed — $e. Using fallback.');
-      return _dispatchFallback(userMessage);
-    }
+    // ---- Plain-text mode (no function calling on this device) ----
+    // The model logs "Model does not support function calls" — stream text
+    // directly like the reference apps (gemma-vision, yachayprueba1-fc02).
+    return _dispatchPlainText(userMessage);
   }
 
   /// Sends [prompt] to the Gemma model with token-level streaming.
@@ -375,10 +409,8 @@ class GemmaService {
     try {
       await _adapter.addQuery(Message.text(text: prompt, isUser: true));
 
-      await _adapter
-          .streamResponse()
-          .timeout(_streamTimeout)
-          .forEach((token) {
+      final stream = _adapter.streamResponse().timeout(_streamTimeout);
+      await for (final token in stream) {
         firstTokenTime ??= DateTime.now();
         tokenCount++;
         tokenBuffer.write(token);
@@ -391,7 +423,7 @@ class GemmaService {
           tokensSinceLastFlush = 0;
           onToken?.call(batch);
         }
-      });
+      }
     } on TimeoutException {
       debugPrint('GemmaService: stream timed out');
     } catch (e) {
@@ -511,10 +543,10 @@ class GemmaService {
     try {
       await _adapter.addQuery(Message.text(text: prompt, isUser: true));
       final buffer = StringBuffer();
-      await _adapter
-          .streamResponse()
-          .timeout(_streamTimeout)
-          .forEach((token) => buffer.write(token));
+      final stream = _adapter.streamResponse().timeout(_streamTimeout);
+      await for (final token in stream) {
+        buffer.write(token);
+      }
       final text = buffer.toString().trim();
       return text.isNotEmpty ? text : null;
     } catch (_) {
@@ -527,25 +559,33 @@ class GemmaService {
 
   /// Runs one inference round over `streamChatResponse()` and classifies the
   /// outcome: accumulated text, tool calls, or nothing usable.
+  ///
+  /// Uses `await for` (like the reference app) instead of `.forEach()` so that
+  /// stream errors are caught and the loop terminates instead of hanging
+  /// indefinitely.
   Future<_RondaResult?> _generarRonda() async {
     final buffer = StringBuffer();
     final toolCalls = <FunctionCallResponse>[];
     var sawToolCall = false;
 
-    await _adapter
-        .streamChatResponse()
-        .timeout(_streamTimeout)
-        .forEach((res) {
-      if (res is TextResponse) {
-        buffer.write(res.token);
-      } else if (res is FunctionCallResponse) {
-        sawToolCall = true;
-        toolCalls.add(res);
-      } else if (res is ParallelFunctionCallResponse) {
-        sawToolCall = true;
-        toolCalls.addAll(res.calls);
+    try {
+      final stream = _adapter.streamChatResponse().timeout(_streamTimeout);
+      await for (final res in stream) {
+        if (res is TextResponse) {
+          buffer.write(res.token);
+        } else if (res is FunctionCallResponse) {
+          sawToolCall = true;
+          toolCalls.add(res);
+        } else if (res is ParallelFunctionCallResponse) {
+          sawToolCall = true;
+          toolCalls.addAll(res.calls);
+        }
       }
-    });
+    } on TimeoutException {
+      debugPrint('GemmaService: _generarRonda timed out');
+    } catch (e) {
+      debugPrint('GemmaService: _generarRonda stream error — $e');
+    }
 
     if (sawToolCall) {
       return _RondaResult(toolCalls: toolCalls);
@@ -600,12 +640,43 @@ class GemmaService {
         : SystemPrompt.build(_registry.listTools());
   }
 
+  /// Compact system prompt for plain-text mode (no tools).
+  ///
+  /// Used when the model does not support function calls — keeps the persona
+  /// and Socratic rules but omits tool descriptions to minimise CPU prefill.
+  String _yachaySystemPrompt() {
+    return useYachayOrchestrator
+        ? 'Eres Yachay, un tutor socrático para estudiantes '
+            'de 4to de primaria en Perú. "Yachay" significa sabiduría en '
+            'quechua. Guiá al estudiante con preguntas, nunca des respuestas '
+            'directas. Usá ejemplos del contexto peruano (soles, mercados, '
+            'chacras). Usá palabras simples — tenés que hablarle a niños de '
+            '9 y 10 años. Celebrá cuando el estudiante aprende algo nuevo. '
+            'Nunca digas "está mal" — decí "casi, probá de otra manera". ¡Allin!'
+        : 'Eres Aprendo+, un tutor para primaria en Perú. '
+            'Explicá con claridad, paciencia y ejemplos del contexto local.';
+  }
+
   bool _esSaludo(String message) {
     final m = message.trim().toLowerCase();
-    return RegExp(
-      r'^(hola|buenas|buen dia|buenos dias|buen día|buenos días|'
-      r'buenas tardes|buenas noches|hey|que tal|qué tal|saludos)\b',
-    ).hasMatch(m);
+    const greetings = [
+      'hola',
+      'buenas',
+      'buen dia',
+      'buenos dias',
+      'buen día',
+      'buenos días',
+      'buenas tardes',
+      'buenas noches',
+      'hey',
+      'que tal',
+      'qué tal',
+      'saludos',
+    ];
+    for (final g in greetings) {
+      if (m.startsWith(g)) return true;
+    }
+    return false;
   }
 
   String _buildExplanationPrompt({
@@ -615,7 +686,7 @@ class GemmaService {
     String? errorEstudiante,
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('Explica el tema "$tema" para un estudiante de secundaria '
+    buffer.writeln('Explica el tema "$tema" para un estudiante de primaria '
         'en nivel $nivel.');
     if (explicacionOriginal != null && explicacionOriginal.isNotEmpty) {
       buffer.writeln('La explicacion original fue: $explicacionOriginal');
@@ -635,7 +706,7 @@ class GemmaService {
   }) {
     final buffer = StringBuffer();
     buffer.writeln('Genera 3 ejercicios de practica sobre "$tema" para '
-        'nivel $nivel de secundaria.');
+        'nivel $nivel de primaria.');
     if (patronError != null && patronError.isNotEmpty) {
       buffer.writeln('Enfocate en corregir este patron de error: $patronError');
     }
@@ -690,6 +761,35 @@ class GemmaService {
     return _dispatcher!.dispatch(userMessage);
   }
 
+  /// Plain-text generation for models that don't support function calling.
+  ///
+  /// Mirrors the reference apps (gemma-vision, yachayprueba1-fc02): uses
+  /// `generateChatResponseAsync()` (chat-level stream) instead of
+  /// `session.getResponseAsync()` (raw token stream), which the reference
+  /// apps show is the correct path for text generation.
+  Future<String> _dispatchPlainText(String userMessage) async {
+    try {
+      await _adapter.addQuery(Message.text(text: userMessage, isUser: true));
+
+      final buffer = StringBuffer();
+      final stream = _adapter.streamChatResponse().timeout(_streamTimeout);
+      await for (final res in stream) {
+        if (res is TextResponse && res.token.isNotEmpty) {
+          buffer.write(res.token);
+        }
+      }
+
+      final text = buffer.toString().trim();
+      if (text.isNotEmpty) return text;
+    } on TimeoutException {
+      debugPrint('GemmaService: plain-text stream timed out');
+    } catch (e) {
+      debugPrint('GemmaService: plain-text stream failed — $e');
+    }
+
+    return _dispatchFallback(userMessage);
+  }
+
   List<Map<String, dynamic>> _fallbackEjercicios(String tema, String nivel) {
     final topic = _fallbackData?[tema];
     if (topic is! Map) return _genericEjercicios(tema);
@@ -705,7 +805,7 @@ class GemmaService {
   }
 
   List<Map<String, dynamic>> _genericEjercicios(String tema) {
-    final clean = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
+    final clean = _stripPrefix(tema);
     return [
       {
         'enunciado': 'Repasa el concepto principal de "$clean" '
@@ -717,10 +817,17 @@ class GemmaService {
   }
 
   String _temaToUserMessage(String tema, String intent) {
-    final clean = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
+    final clean = _stripPrefix(tema);
     if (intent == 'explicar') return 'explicame $clean';
     if (intent == 'ejercicios') return 'dame ejercicios de $clean';
     return clean;
+  }
+
+  /// Strips the topic-ID prefix (e.g. "M01_fracciones" → "fracciones").
+  /// Uses native String methods only — zero RegExp.
+  String _stripPrefix(String id) {
+    final idx = id.indexOf('_');
+    return idx >= 0 ? id.substring(idx + 1) : id;
   }
 
   Future<List<Map<String, dynamic>>> _dispatchFallbackEjercicios(
