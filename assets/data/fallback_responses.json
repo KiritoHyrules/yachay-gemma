@@ -1,0 +1,243 @@
+{
+  "trivial_greetings": [
+    {
+      "regex": "^(hola|holaa|holaaa|holi|hey|buenos d\u00edas|buenas tardes|buenas noches|buen d\u00eda|gracias|muchas gracias|saludos|buenas)[!.\\s]*$",
+      "response": "\u00a1Hola! Soy Yachay, tu tutor de aritm\u00e9tica. \u00bfQu\u00e9 quer\u00e9s aprender hoy?"
+    },
+    {
+      "regex": "^(c\u00f3mo est\u00e1s|como estas|qu\u00e9 tal|que tal|todo bien|qu\u00e9 hay|que hay)[?.!\\s]*$",
+      "response": "\u00a1Muy bien, gracias por preguntar! Soy Yachay, tu tutor de aritm\u00e9tica. \u00bfQu\u00e9 tema quer\u00e9s repasar hoy?"
+    }
+  ],
+  "topic_keywords": {
+    "fracciones": "M001_fracciones",
+    "fracci\u00f3n": "M001_fracciones",
+    "fraccion": "M001_fracciones",
+    "ecuaciones": "M002_ecuaciones",
+    "ecuaci\u00f3n": "M002_ecuaciones",
+    "ecuacion": "M002_ecuaciones",
+    "porcentajes": "M003_porcentajes",
+    "porcentaje": "M003_porcentajes",
+    "tanto por ciento": "M003_porcentajes",
+    "comprensi\u00f3n": "L001_comprension",
+    "comprension": "L001_comprension",
+    "lectura": "L001_comprension",
+    "leer": "L001_comprension",
+    "inferencias": "L002_inferencias",
+    "inferencia": "L002_inferencias",
+    "inferir": "L002_inferencias",
+    "deducir": "L002_inferencias",
+    "\u00e1lgebra": "_generic_math",
+    "algebra": "_generic_math",
+    "geometr\u00eda": "_generic_math",
+    "geometria": "_generic_math",
+    "matem\u00e1tica": "_generic_math",
+    "matematica": "_generic_math",
+    "mate": "_generic_math",
+    "comunicaci\u00f3n": "_generic_reading",
+    "comunicacion": "_generic_reading"
+  },
+  "keyword_intents": {
+    "explicar_tema": [
+      "explica",
+      "expl\u00edcame",
+      "explicame",
+      "ay\u00fadame con",
+      "ayudame con",
+      "no entiendo",
+      "qu\u00e9 es",
+      "que es",
+      "ens\u00e9\u00f1ame",
+      "ense\u00f1ame",
+      "dime qu\u00e9",
+      "dime que",
+      "h\u00e1blame de",
+      "hablame de",
+      "necesito ayuda con",
+      "me ayudas con",
+      "repasar",
+      "repaso",
+      "c\u00f3mo se",
+      "como se",
+      "c\u00f3mo funciona",
+      "como funciona",
+      "para qu\u00e9 sirve",
+      "para que sirve"
+    ],
+    "generar_ejercicios": [
+      "practicar",
+      "ejercicios",
+      "pr\u00e1ctica",
+      "practica",
+      "problemas",
+      "ponme",
+      "dame ejercicios",
+      "quiero practicar",
+      "quiero ejercicios",
+      "a practicar",
+      "resolver",
+      "practiquemos",
+      "ponme a prueba",
+      "reto",
+      "desaf\u00edo",
+      "desafio"
+    ],
+    "ejecutar_diagnostico": [
+      "diagn\u00f3stico",
+      "diagnostico",
+      "eval\u00faame",
+      "evaluame",
+      "prueba",
+      "examen",
+      "qu\u00e9 tanto s\u00e9",
+      "que tanto se",
+      "hazme un diagn\u00f3stico",
+      "hazme un diagnostico",
+      "hazme una prueba",
+      "mide mi nivel",
+      "evaluaci\u00f3n",
+      "evaluacion",
+      "cu\u00e1nto s\u00e9",
+      "cuanto se",
+      "test",
+      "nivel"
+    ]
+  },
+  "generic_responses": [
+    "Yachay est\u00e1 teniendo dificultades para responder. \u00bfPodr\u00edas intentar preguntar de otra forma? Prob\u00e1 con \"Explicar\", \"Practicar\" o \"Mi progreso\".",
+    "\u00a1Qu\u00e9 bien que quieras aprender! Soy Yachay, tu tutor de aritm\u00e9tica. Podemos empezar con fracciones, ecuaciones, porcentajes o comprensi\u00f3n lectora. \u00bfCu\u00e1l prefieres?",
+    "No te preocupes, Yachay est\u00e1 aqu\u00ed para ayudarte. Cu\u00e9ntame, \u00bfqu\u00e9 te gustar\u00eda repasar hoy? Podemos trabajar matem\u00e1tica o comunicaci\u00f3n.",
+    "Entiendo que quieres estudiar. Para empezar, dime: \u00bfmatem\u00e1tica o comunicaci\u00f3n? Y dentro de eso, \u00bfhay alg\u00fan tema espec\u00edfico que te interese?",
+    "\u00a1Excelente actitud! Aprender es el primer paso. Soy Yachay y puedo explicarte un tema, generarte ejercicios de pr\u00e1ctica, o hacerte un diagn\u00f3stico para ver tu nivel. \u00bfQu\u00e9 te gustar\u00eda hacer?"
+  ],
+  "M001_fracciones": {
+    "1": {
+      "explicacion": "Las fracciones son como repartir algo en partes iguales. Imagina una pizza cortada en 8 pedazos. Si comes 3, comiste 3/8 de la pizza. El numero de arriba (numerador) dice cuantos pedazos tomaste, y el de abajo (denominador) dice en cuantos pedazos se dividio el total. Practica dibujando circulos o barras divididas y coloreando las partes que te pidan.",
+      "ejercicios": [
+        {"enunciado": "Un chocolate tiene 6 cuadritos. Si comes 2, que fraccion representa lo que comiste?", "opciones": ["6/2", "2/6", "4/6", "2/8"], "respuestaCorrecta": "2/6"},
+        {"enunciado": "En una bandeja hay 12 empanadas. Si 5 son de pollo, que fraccion representan las empanadas de pollo?", "opciones": ["12/5", "5/7", "5/12", "7/12"], "respuestaCorrecta": "5/12"},
+        {"enunciado": "Dibuja un rectangulo dividido en 4 partes iguales y colorea 3. Que fraccion representa la parte coloreada?", "opciones": ["3/4", "1/4", "4/3", "4/4"], "respuestaCorrecta": "3/4"}
+      ]
+    },
+    "2": {
+      "explicacion": "Para comparar fracciones con el mismo denominador, solo mira el numerador: la fraccion con numerador mas grande es mayor. Si tienen distinto denominador, busca un denominador comun multiplicando. Ejemplo: para comparar 2/3 y 3/4, convierte a doceavos: 2/3 = 8/12 y 3/4 = 9/12. Como 9 > 8, entonces 3/4 > 2/3. Tambien puedes dividir: 2/3 = 0.66 y 3/4 = 0.75.",
+      "ejercicios": [
+        {"enunciado": "Cual fraccion es equivalente a 2/3?", "opciones": ["4/6", "2/6", "3/4", "4/9"], "respuestaCorrecta": "4/6"},
+        {"enunciado": "Cual es mayor: 5/8 o 3/8?", "opciones": ["5/8", "3/8", "Son iguales", "No se puede saber"], "respuestaCorrecta": "5/8"},
+        {"enunciado": "Simplifica la fraccion 8/12 a su minima expresion.", "opciones": ["4/6", "2/3", "8/12", "1/2"], "respuestaCorrecta": "2/3"}
+      ]
+    },
+    "3": {
+      "explicacion": "Las fracciones mixtas combinan enteros y fracciones propias. 2 3/4 significa dos enteros mas tres cuartos. Para convertir a fraccion impropia: multiplica el entero por el denominador (2 x 4 = 8), suma el numerador (8 + 3 = 11), y pon el mismo denominador: 11/4. Las fracciones impropias tienen numerador mayor que el denominador y representan mas de un entero.",
+      "ejercicios": [
+        {"enunciado": "Convierte 3 2/5 a fraccion impropia.", "opciones": ["17/5", "6/5", "15/5", "11/5"], "respuestaCorrecta": "17/5"},
+        {"enunciado": "Cual es el resultado de 1/2 + 1/3?", "opciones": ["2/5", "5/6", "1/6", "2/6"], "respuestaCorrecta": "5/6"},
+        {"enunciado": "Multiplica 2/5 por 3/4.", "opciones": ["6/20", "5/9", "6/9", "8/15"], "respuestaCorrecta": "6/20"}
+      ]
+    }
+  },
+  "M002_ecuaciones": {
+    "1": {
+      "explicacion": "Una ecuacion es como una balanza en equilibrio. Lo que esta a la izquierda del signo igual debe valer lo mismo que lo de la derecha. Para encontrar el valor de x, hacemos operaciones inversas. Si x + 3 = 10, restamos 3 a ambos lados: x = 7. Siempre haz la misma operacion en los dos lados para mantener el equilibrio. Verifica tu respuesta reemplazando x en la ecuacion original.",
+      "ejercicios": [
+        {"enunciado": "Resuelve: x + 8 = 15. Cuanto vale x?", "opciones": ["x = 7", "x = 23", "x = 8", "x = 6"], "respuestaCorrecta": "x = 7"},
+        {"enunciado": "Resuelve: x - 4 = 9. Cuanto vale x?", "opciones": ["x = 5", "x = 13", "x = 36", "x = 9"], "respuestaCorrecta": "x = 13"},
+        {"enunciado": "Si 20 - x = 13, cual es el valor de x?", "opciones": ["7", "33", "13", "20"], "respuestaCorrecta": "7"}
+      ]
+    },
+    "2": {
+      "explicacion": "Cuando la ecuacion tiene multiplicacion o division, aplica la operacion inversa. Si 3x = 15, divide ambos lados entre 3: x = 5. Si x/4 = 3, multiplica ambos lados por 4: x = 12. Recuerda el orden: primero deshaces sumas o restas, luego multiplicaciones o divisiones. Siempre verifica tu respuesta en la ecuacion original para asegurarte.",
+      "ejercicios": [
+        {"enunciado": "Resuelve: 4x = 20. Cuanto vale x?", "opciones": ["x = 5", "x = 16", "x = 24", "x = 80"], "respuestaCorrecta": "x = 5"},
+        {"enunciado": "Resuelve: x/3 = 7. Cuanto vale x?", "opciones": ["x = 2", "x = 21", "x = 10", "x = 4"], "respuestaCorrecta": "x = 21"},
+        {"enunciado": "Resuelve: 2x + 3 = 11.", "opciones": ["x = 4", "x = 7", "x = 8", "x = 5"], "respuestaCorrecta": "x = 4"}
+      ]
+    },
+    "3": {
+      "explicacion": "Para ecuaciones con x en ambos lados, primero agrupa las x de un lado y los numeros del otro. Ejemplo: 5x - 2 = 2x + 7. Resta 2x a ambos lados: 3x - 2 = 7. Suma 2: 3x = 9. Divide entre 3: x = 3. Siempre verifica: 5(3) - 2 = 15 - 2 = 13. 2(3) + 7 = 6 + 7 = 13. Correcto. La clave es mover terminos sin olvidar cambiar el signo.",
+      "ejercicios": [
+        {"enunciado": "Resuelve: 3x + 5 = 2x + 10.", "opciones": ["x = 5", "x = 3", "x = 15", "x = 8"], "respuestaCorrecta": "x = 5"},
+        {"enunciado": "Resuelve: 4x - 3 = x + 9.", "opciones": ["x = 4", "x = 12", "x = 3", "x = 6"], "respuestaCorrecta": "x = 4"},
+        {"enunciado": "Resuelve: 2(x + 3) = 14.", "opciones": ["x = 4", "x = 7", "x = 8", "x = 10"], "respuestaCorrecta": "x = 4"}
+      ]
+    }
+  },
+  "M003_porcentajes": {
+    "1": {
+      "explicacion": "El porcentaje significa 'por cada cien'. 25% quiere decir 25 de cada 100, o la fraccion 25/100 que se simplifica a 1/4. Para calcular el porcentaje de una cantidad: multiplica la cantidad por el porcentaje y divide entre 100. Ejemplo: el 20% de 80 es (80 x 20) / 100 = 1600/100 = 16. Practica con ejemplos cotidianos como descuentos en la tienda o notas de examenes.",
+      "ejercicios": [
+        {"enunciado": "Calcula el 10% de 200.", "opciones": ["10", "20", "100", "2"], "respuestaCorrecta": "20"},
+        {"enunciado": "Que fraccion representa el 50%?", "opciones": ["1/4", "1/2", "1/3", "1/5"], "respuestaCorrecta": "1/2"},
+        {"enunciado": "Si 15 de 30 estudiantes son mujeres, que porcentaje representan?", "opciones": ["15%", "30%", "50%", "45%"], "respuestaCorrecta": "50%"}
+      ]
+    },
+    "2": {
+      "explicacion": "Para aplicar un descuento, calcula el porcentaje y restalo del precio original. Ejemplo: una mochila de S/ 80 con 25% de descuento. Calcula el 25% de 80: (80 x 25)/100 = 20. Precio final: 80 - 20 = S/ 60. Tambien puedes pensar: si hay 25% de descuento, pagas el 75%. Entonces 75% de 80 = 0.75 x 80 = S/ 60. Ambos metodos dan lo mismo.",
+      "ejercicios": [
+        {"enunciado": "Un pantalon cuesta S/ 120 y tiene 30% de descuento. Cual es el precio final?", "opciones": ["S/ 90", "S/ 84", "S/ 36", "S/ 100"], "respuestaCorrecta": "S/ 84"},
+        {"enunciado": "Convierte 3/5 a porcentaje.", "opciones": ["35%", "60%", "30%", "53%"], "respuestaCorrecta": "60%"},
+        {"enunciado": "Si el IGV es 18%, cuanto se paga por un producto de S/ 50 sin IGV?", "opciones": ["S/ 59", "S/ 68", "S/ 50", "S/ 41"], "respuestaCorrecta": "S/ 59"}
+      ]
+    },
+    "3": {
+      "explicacion": "Para problemas de aumento porcentual, suma el porcentaje al 100% y calcula sobre el original. Si un sueldo de S/ 1500 aumenta 12%, el nuevo sueldo es el 112% de 1500: 1.12 x 1500 = S/ 1680. Para disminuciones sucesivas, aplica cada porcentaje por separado. Si algo baja 20% y luego otro 10%, no es 30% de descuento total sino 28% (100 - 20% = 80, luego 80 - 10% = 72%).",
+      "ejercicios": [
+        {"enunciado": "Un celular cuesta S/ 800 y aumenta 15%. Cual es el nuevo precio?", "opciones": ["S/ 920", "S/ 815", "S/ 120", "S/ 680"], "respuestaCorrecta": "S/ 920"},
+        {"enunciado": "De 45 estudiantes, 36 aprobaron. Que porcentaje desaprobo?", "opciones": ["80%", "20%", "36%", "9%"], "respuestaCorrecta": "20%"},
+        {"enunciado": "Un producto baja 20% y luego otro 10%. Si costaba S/ 100, cual es el precio final?", "opciones": ["S/ 70", "S/ 72", "S/ 80", "S/ 90"], "respuestaCorrecta": "S/ 72"}
+      ]
+    }
+  },
+  "L001_comprension": {
+    "1": {
+      "explicacion": "La comprension literal significa encontrar informacion que el texto dice directamente. No necesitas interpretar, solo localizar datos. Lee la pregunta primero, identifica la palabra clave (quien, que, cuando, donde), y busca esa palabra en el texto. La respuesta estara en la misma oracion o en la siguiente. Subraya mientras lees para no perder los detalles importantes.",
+      "ejercicios": [
+        {"enunciado": "Lee: 'Carlos tiene 12 anos y vive en Trujillo. Su deporte favorito es el futbol.' Cuantos anos tiene Carlos?", "opciones": ["10", "12", "14", "No se menciona"], "respuestaCorrecta": "12"},
+        {"enunciado": "Lee: 'La feria empieza a las 9 am y termina a las 6 pm.' A que hora termina la feria?", "opciones": ["9 am", "12 pm", "6 pm", "8 pm"], "respuestaCorrecta": "6 pm"},
+        {"enunciado": "Lee: 'Maria compro 3 panes, 2 litros de leche y 1 kilo de arroz.' Cuantos litros de leche compro?", "opciones": ["1", "2", "3", "0"], "respuestaCorrecta": "2"}
+      ]
+    },
+    "2": {
+      "explicacion": "Para encontrar la idea principal de un texto, preguntate: de que trata principalmente? La idea principal suele estar en la primera o ultima oracion del parrafo. Los detalles la apoyan pero no son la idea central. Practica leyendo textos cortos y resumiendolos en una sola oracion con tus propias palabras. Si tu resumen captura lo esencial, entendiste la idea principal.",
+      "ejercicios": [
+        {"enunciado": "Lee: 'El pisco es la bebida bandera del Peru. Se produce en las regiones de Ica, Lima, Arequipa, Moquegua y Tacna. Se elabora con uva quebranta.' Cual es la idea principal?", "opciones": ["El pisco se hace con uva", "El pisco es la bebida bandera del Peru", "El pisco se produce en Ica", "Hay cinco regiones productoras"], "respuestaCorrecta": "El pisco es la bebida bandera del Peru"},
+        {"enunciado": "Lee: 'El ejercicio regular mejora la salud del corazon, fortalece los musculos y ayuda a controlar el peso. Ademas, reduce el estres.' Idea principal:", "opciones": ["El ejercicio fortalece musculos", "El ejercicio controla el peso", "El ejercicio regular tiene multiples beneficios para la salud", "El ejercicio reduce el estres"], "respuestaCorrecta": "El ejercicio regular tiene multiples beneficios para la salud"},
+        {"enunciado": "Lee: 'Los incas construyeron Machu Picchu en el siglo XV. Usaron piedras talladas con precision. El sitio esta a 2,430 metros de altura.' De que trata el texto?", "opciones": ["De la altura de Machu Picchu", "De la construccion de Machu Picchu por los incas", "Del siglo XV", "De las piedras talladas"], "respuestaCorrecta": "De la construccion de Machu Picchu por los incas"}
+      ]
+    },
+    "3": {
+      "explicacion": "Para distinguir entre hecho y opinion, preguntate: esto se puede comprobar? Un hecho puede verificarse con evidencia (fechas, mediciones, datos). Una opinion expresa lo que alguien piensa o siente y usa palabras como 'creo', 'mejor', 'deberia', 'es bonito'. Ejemplo: 'El rio Amazonas mide 6,400 km' es un hecho (se puede medir). 'El Amazonas es el rio mas hermoso' es opinion (depende de cada persona).",
+      "ejercicios": [
+        {"enunciado": "'El cielo es azul'. Es un hecho o una opinion?", "opciones": ["Hecho", "Opinion", "No se puede determinar", "Ambas"], "respuestaCorrecta": "Hecho"},
+        {"enunciado": "'La musica criolla es la mejor del Peru'. Es hecho u opinion?", "opciones": ["Hecho", "Opinion", "No se puede determinar", "Ambas"], "respuestaCorrecta": "Opinion"},
+        {"enunciado": "'Lima fue fundada el 18 de enero de 1535'. Es hecho u opinion?", "opciones": ["Hecho", "Opinion", "No se puede determinar", "Ambas"], "respuestaCorrecta": "Hecho"}
+      ]
+    }
+  },
+  "L002_inferencias": {
+    "1": {
+      "explicacion": "Inferir es descubrir lo que el texto no dice directamente usando pistas. Es como ser un detective. Busca palabras que te den senales: si alguien 'tiembla' y 'se pone un abrigo', puedes inferir que hace frio. La inferencia debe basarse en lo que dice el texto, no en lo que tu imaginas. Preguntate: que pistas me da el texto para pensar esto? Si no hay pistas, no es una inferencia valida.",
+      "ejercicios": [
+        {"enunciado": "Lee: 'Pedro llego a casa mojado y con el paraguas abierto.' Que puedes inferir?", "opciones": ["Pedro fue a la playa", "Esta lloviendo", "Pedro se bano", "Hace calor"], "respuestaCorrecta": "Esta lloviendo"},
+        {"enunciado": "Lee: 'Lucia bostezo varias veces y se froto los ojos.' Que puedes inferir?", "opciones": ["Tiene sueno", "Esta enojada", "Tiene hambre", "Esta feliz"], "respuestaCorrecta": "Tiene sueno"},
+        {"enunciado": "Lee: 'El plato de comida estaba intacto. Juan miro el reloj y salio corriendo.' Que infieres?", "opciones": ["Juan comio mucho", "Juan llego tarde y no desayuno", "Juan cocino", "Juan lavo los platos"], "respuestaCorrecta": "Juan llego tarde y no desayuno"}
+      ]
+    },
+    "2": {
+      "explicacion": "Para inferir el significado de una palabra desconocida, busca las palabras que la rodean (contexto). Fijate en las otras oraciones del parrafo. Ejemplo: 'El picaflor, con su largo pico, libaba el nectar de las flores.' Aunque no sepas que es 'libar', las pistas 'pico largo' y 'nectar de las flores' sugieren que significa 'beber o extraer'. El contexto es tu mejor herramienta para entender palabras nuevas.",
+      "ejercicios": [
+        {"enunciado": "'El arbusto espinoso rasguno sus brazos cuando paso cerca.' Que significa 'arbusto'?", "opciones": ["Un animal", "Un tipo de planta", "Una piedra", "Un insecto"], "respuestaCorrecta": "Un tipo de planta"},
+        {"enunciado": "'El conductor aminoro la velocidad al ver el semaforo en amarillo.' Que significa 'aminorar' segun el contexto?", "opciones": ["Aumentar", "Reducir", "Ignorar", "Mantener"], "respuestaCorrecta": "Reducir"},
+        {"enunciado": "'Quedo atonito al ver el truco de magia.' Por contexto, 'atonito' significa:", "opciones": ["Triste", "Enojado", "Sorprendido", "Aburrido"], "respuestaCorrecta": "Sorprendido"}
+      ]
+    },
+    "3": {
+      "explicacion": "Para predecir lo que sucedera en un texto, usa las pistas que el autor dejo. Los textos narrativos dan senales sobre el desenlace. Preguntate: que sugieren las acciones de los personajes? Hay un conflicto sin resolver? Un buen lector anticipa lo que viene basandose en la estructura del texto. Por ejemplo, si un personaje guarda un secreto, probablemente ese secreto sera revelado mas adelante y causara un problema.",
+      "ejercicios": [
+        {"enunciado": "Lee: 'Rosa estudio toda la noche. Repaso cada formula y resolvio veinte ejercicios.' Que prediccion es mas probable?", "opciones": ["Rosa reprobara el examen", "A Rosa le ira bien en el examen", "Rosa no ira a clases", "Rosa cambiara de escuela"], "respuestaCorrecta": "A Rosa le ira bien en el examen"},
+        {"enunciado": "Lee: 'El cielo se puso gris. Empezo a soplar un viento fuerte. Las personas cerraban sus ventanas apresuradas.' Que es mas probable que pase?", "opciones": ["Saldra el sol", "Habra una tormenta", "Terminara el dia", "Cantara un gallo"], "respuestaCorrecta": "Habra una tormenta"},
+        {"enunciado": "Lee: 'Miguel entreno todos los dias por seis meses. La carrera era manana y no podia dormir de los nervios.' Que infieres?", "opciones": ["Miguel se quedo en casa", "Miguel esta preparado pero nervioso", "Miguel perdio la carrera", "Miguel no entreno"], "respuestaCorrecta": "Miguel esta preparado pero nervioso"}
+      ]
+    }
+  }
+}

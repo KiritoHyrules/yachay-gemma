@@ -38,7 +38,10 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   String? systemInstruction;
   int? maxOutputTokens;
   List<Tool>? tools;
+  int? tokenBuffer;
+  int? randomSeed;
   bool closed = false;
+  bool historyCleared = false;
 
   /// Every message fed into the chat session, in order.
   final List<Message> addedQueries = [];
@@ -78,11 +81,15 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
     required String systemInstruction,
     required int maxOutputTokens,
     required List<Tool> tools,
+    int tokenBuffer = 512,
+    int randomSeed = 1,
   }) async {
     createChatCalls++;
     this.systemInstruction = systemInstruction;
     this.maxOutputTokens = maxOutputTokens;
     this.tools = tools;
+    this.tokenBuffer = tokenBuffer;
+    this.randomSeed = randomSeed;
   }
 
   @override
@@ -105,5 +112,10 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   @override
   Future<void> close() async {
     closed = true;
+  }
+
+  @override
+  Future<void> clearHistory() async {
+    historyCleared = true;
   }
 }
