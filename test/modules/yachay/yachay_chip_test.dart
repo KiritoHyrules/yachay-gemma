@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' show PreferredBackend;
+import 'package:provider/provider.dart';
 
+import 'package:aprendo_plus/core/database/database_service.dart';
+import 'package:aprendo_plus/core/state/student_state.dart';
 import 'package:aprendo_plus/modules/gemma/gemma_service.dart';
 import 'package:aprendo_plus/modules/gemma/model_status.dart';
 import 'package:aprendo_plus/modules/yachay/screens/yachay_scaffold.dart';
@@ -16,7 +19,10 @@ import '../gemma/fakes/gemma_inference_adapter_fake.dart';
 /// effective backend from `activeBackend` (e.g. `Listo (CPU)`).
 void main() {
   Widget buildScaffold(GemmaService service) {
-    return MaterialApp(home: YachayScaffold(gemmaService: service));
+    return ChangeNotifierProvider<StudentState>.value(
+      value: StudentState(DatabaseService.instance),
+      child: MaterialApp(home: YachayScaffold(gemmaService: service)),
+    );
   }
 
   /// Polls with plain pumps until [condition] holds. The fallback data is
