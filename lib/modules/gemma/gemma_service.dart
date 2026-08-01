@@ -14,6 +14,7 @@ import 'package:flutter_gemma/flutter_gemma.dart'
         TextResponse;
 
 import '../../core/models/message_stats.dart';
+import '../../core/utils/text_utils.dart';
 import '../yachay/tool_handlers/consultar_estado.dart';
 import '../yachay/tool_handlers/evaluar_respuesta.dart';
 import '../yachay/tool_handlers/obtener_siguiente_tema.dart';
@@ -391,12 +392,14 @@ class GemmaService {
     String prompt, {
     void Function(String tokenBatch)? onToken,
     void Function(MessageStats stats)? onComplete,
+    void Function(String truncatedText)? onDone,
   }) async {
     await _cargarFallback();
 
     // ---- guard: model not loaded → degraded empty stats ----
     if (!_modeloCargado) {
       onComplete?.call(const MessageStats(tokenCount: 0, totalLatency: 0));
+      onDone?.call('');
       return;
     }
 
@@ -405,6 +408,7 @@ class GemmaService {
     int tokenCount = 0;
     int tokensSinceLastFlush = 0;
     final tokenBuffer = StringBuffer();
+    final fullText = StringBuffer();
 
     try {
       await _adapter.addQuery(Message.text(text: prompt, isUser: true));
@@ -413,6 +417,7 @@ class GemmaService {
       await for (final token in stream) {
         firstTokenTime ??= DateTime.now();
         tokenCount++;
+        fullText.write(token);
         tokenBuffer.write(token);
         tokensSinceLastFlush++;
 
@@ -434,6 +439,10 @@ class GemmaService {
     if (tokensSinceLastFlush > 0) {
       onToken?.call(tokenBuffer.toString());
     }
+
+    // Truncate full response at last sentence boundary.
+    final truncated = truncateAtSentence(fullText.toString());
+    onDone?.call(truncated);
 
     // Compute final statistics (partial on timeout).
     final endTime = DateTime.now();
