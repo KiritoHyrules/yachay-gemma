@@ -3,10 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart'
-    show MethodCall, MethodChannel, MissingPluginException, rootBundle;
-import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_gemma/flutter_gemma.dart'
+    show
+        FunctionCallResponse,
+        Message,
+        ParallelFunctionCallResponse,
+        PreferredBackend,
+        TextResponse;
 
 import '../../core/models/message_stats.dart';
 import '../yachay/tool_handlers/consultar_estado.dart';
@@ -16,9 +20,8 @@ import '../yachay/tool_handlers/obtener_plan_completo.dart';
 import '../yachay/tool_handlers/generar_nota_progreso.dart';
 import '../yachay/tool_handlers/generar_resumen_alumno.dart';
 import '../yachay/tool_handlers/iniciar_conversacion.dart';
-import 'action_parser.dart';
 import 'fallback_dispatcher.dart';
-import 'grammar_builder.dart';
+import 'gemma_inference_adapter.dart';
 import 'system_prompt.dart';
 import 'tool_registry.dart';
 import 'tool_handlers/explicar_tema.dart';
@@ -49,61 +52,64 @@ class SamplingConfig {
   /// Repeat penalty: 1.1 — mild discouragement of token repetition.
   static const double repeatPenalty = 1.1;
 
-  /// Max new tokens per generation: 1024 — sufficient for tool-calling
-  /// and multi-step explanations (was 256).
+  /// Max output tokens per generation: 1024 — sufficient for tool-calling
+  /// and multi-step explanations (was 256). This is the `maxOutputTokens`
+  /// passed to `createChat` (generation cap, not the context window).
   static const int maxTokens = 1024;
 }
 
 /// Default LiteRT model file used by `flutter_gemma`.
 ///
-/// The reference project stores this file in the app documents directory and
-/// points FlutterGemma's model manager to it before creating the model.
+/// Kept for API compatibility; the 1.4.2 path uses `FlutterGemma.getActiveModel`
+/// (the installed model is managed by the plugin, see PR2's bootstrap).
 const String defaultFlutterGemmaModelFile = 'gemma-3n-E2B-it-int4.task';
 
-/// Bridge to on-device Gemma inference via FlutterGemmaPlugin (MediaPipe).
+/// Bridge to on-device Gemma inference on the flutter_gemma 1.4.2 API.
 ///
-/// Replaces the legacy MethodChannel/Kotlin/JNI/llama.cpp engine with
-/// Google's `flutter_gemma` package. Follows the reference pattern from
-/// gemma-vision/lib/chat_page/services/gemma_service.dart.
+/// Replaces the legacy channel/Kotlin/JNI/llama.cpp engine AND the
+/// 0.10.x MediaPipe surface with Google's `flutter_gemma` 1.4.2 API:
+///   - init: `FlutterGemma.getActiveModel(maxTokens: 8192, backend: cpu)` +
+///     `createChat(systemInstruction, maxOutputTokens, tools, toolChoice: auto)`
+///   - dispatch: native function calling loop (max [maxDispatchRounds] rounds)
+///     over `generateChatResponseAsync()`
+///   - streaming: raw token stream from the chat session (`getResponseAsync`)
+///   - timeout: injectable, 30 seconds by default
+///   - failure policy: ANY failure degrades to the pre-authored
+///     `FallbackDispatcher` (tokenCount == 0 / fallback text, never crash)
+///   - `dispose()` only `close()`s the chat/model (ADR-5: never deleteModel)
 ///
-/// Strategy (hackathon-safe):
-///   1. `cargarModelo()` attempts to load via FlutterGemmaPlugin.
-///   2. If the model loads → live AI inference with native tool calling.
-///   3. If the model fails → `_modeloCargado = false` and every call
-///      returns pre-authored fallback responses from
-///      `assets/data/fallback_responses.json`.
-///
-/// The app is FULLY FUNCTIONAL either way — the fallback guarantees every
-/// help request gets a pedagogically sound response in Peruvian Spanish.
+/// All plugin access goes through the [GemmaInferenceAdapter] seam so the
+/// whole service is testable with an in-memory fake.
 class GemmaService {
-  GemmaService._internal();
+  GemmaService._internal({
+    GemmaInferenceAdapter? adapter,
+    Duration? streamTimeout,
+  })  : _adapter = adapter ?? FlutterGemmaInferenceAdapter(),
+        _streamTimeout = streamTimeout ?? const Duration(seconds: 30);
+
   static final GemmaService instance = GemmaService._internal();
 
   /// Creates a fresh GemmaService instance for testing.
   /// Production code MUST use [instance] instead.
   @visibleForTesting
-  GemmaService.forTest() : this._internal();
+  GemmaService.forTest({GemmaInferenceAdapter? adapter, Duration? streamTimeout})
+      : this._internal(adapter: adapter, streamTimeout: streamTimeout);
 
   /// Resets all internal state. Only for testing — production code
   /// MUST call [dispose] and re-initialize if needed.
   @visibleForTesting
   void resetForTest() {
-    _model = null;
-    _chat = null;
-    _initialised = false;
     _modeloCargado = false;
     _fallbackLoaded = false;
     _fallbackData = null;
     _dispatcher = null;
     _registryInitialized = false;
+    _toolContext = const ToolContext();
     _registry.clearForTest();
   }
 
-  // ---- flutter_gemma plugin ----
-  final _gemma = FlutterGemmaPlugin.instance;
-  InferenceModel? _model;
-  InferenceChat? _chat;
-  bool _initialised = false;
+  final GemmaInferenceAdapter _adapter;
+  final Duration _streamTimeout;
 
   // ---- state ----
   bool _modeloCargado = false;
@@ -115,24 +121,11 @@ class GemmaService {
   ToolContext _toolContext = const ToolContext();
   bool _registryInitialized = false;
 
-  // ---- feature gates ----
-
-  /// When `true` (default), uses FlutterGemmaPlugin (MediaPipe) for inference.
-  /// When `false`, routes to the legacy MethodChannel (llama.cpp) path,
-  /// preserved on the `legacy-llamacpp` git branch for one-flag rollback.
-  static bool useFlutterGemma = true;
-
-  /// When `true` (default), `procesarMensaje()` uses the XML dispatch loop.
-  /// When `false`, routes to legacy `generarExplicacion()` and
-  /// `generarEjerciciosRefuerzo()` — preserving the pre-Phase-5 behavior
-  /// as a one-flag rollback.
-  static bool useXmlDispatch = true;
+  // ---- persona flags ----
 
   /// When `true` (default), the Yachay Socratic tutor persona replaces the
-  /// legacy Aprendo+ tutor. Extends the tool set to 13 tools, uses the
-  /// Yachay system prompt, and runs up to 7 dispatch rounds.
-  ///
-  /// When `false`, routes to the standard 6-tool Aprendo+ persona.
+  /// legacy Aprendo+ tutor: Yachay system prompt as `systemInstruction` and
+  /// the full 13-tool set registered for native function calling.
   static bool useYachayOrchestrator = true;
 
   /// Maximum number of dispatch rounds in the tool-calling loop.
@@ -148,11 +141,6 @@ class GemmaService {
       'Eres un tutor de matematicas para secundaria '
       'en Peru. Explica conceptos de manera clara, usa ejemplos del contexto peruano '
       'y mantén un tono motivador sin calificaciones negativas.';
-
-  // ---- dev mode: connect to desktop llama-server instead of MethodChannel ----
-
-  static bool devMode = false;
-  static String devServerUrl = 'http://10.0.2.2:8080';
 
   /// Writes debug info to device file. Read via adb:
   ///   adb shell run-as com.aprendoplus.app cat files/yachay_debug.log
@@ -171,87 +159,206 @@ class GemmaService {
   /// Whether the model is loaded and ready for inference.
   bool get modeloCargado => _modeloCargado;
 
+  /// Backend the loaded model runs on (CPU by design, ADR-3);
+  /// null until [cargarModelo] succeeds.
+  PreferredBackend? get activeBackend => _adapter.activeBackend;
+
+  /// Injects the [ToolContext] passed to tool handlers.
+  ///
+  /// The app wires the live student state / DB here; tool handlers such as
+  /// `evaluar_respuesta` use it to persist `student_mastery` checkpoints.
+  /// Services set here survive registry initialization.
+  void setToolContext(ToolContext ctx) {
+    _toolContext = ctx;
+  }
+
   // ---- public API ----
 
-  /// Initializes FlutterGemmaPlugin and loads the Gemma model.
-  /// Returns `true` if the model is ready for inference.
+  /// Loads the active model on the CPU backend and creates the 1.4.2 chat
+  /// session (systemInstruction, maxOutputTokens >= 1024, toolChoice: auto,
+  /// 13 tools). Idempotent.
   ///
-  /// When [useFlutterGemma] is `false`, delegates to the legacy MethodChannel
-  /// path instead.
+  /// Returns `true` only when the model is ready for inference. ANY failure
+  /// (no model installed, native error) degrades to fallback responses.
   Future<bool> cargarModelo({String? modelPath}) async {
     if (_modeloCargado) return true;
 
     // Pre-load fallback data so it's available regardless of outcome.
     await _cargarFallback();
-
-    if (!useFlutterGemma) {
-      return _cargarModeloLegacy(modelPath: modelPath);
-    }
+    _inicializarRegistry();
 
     try {
-      await init(modelPath: modelPath);
+      final ok = await _adapter.loadModel(maxTokens: 8192);
+      if (!ok) {
+        _modeloCargado = false;
+        return false;
+      }
+      await _adapter.createChat(
+        systemInstruction: _systemInstruction(),
+        maxOutputTokens: SamplingConfig.maxTokens,
+        tools: _registry.toFlutterGemmaTools(),
+      );
+      _modeloCargado = true;
+      return true;
     } catch (e) {
-      // flutter_gemma 1.4.2 surfaces load failures as Errors (e.g. StateError
-      // from the uninitialized ServiceRegistry before the Phase-2 bootstrap),
-      // not Exceptions. The documented contract: ANY load failure degrades
-      // to fallback responses.
-      debugPrint('GemmaService: FlutterGemmaPlugin init failed — $e. '
+      debugPrint('GemmaService: loadModel/createChat failed — $e. '
           'Using fallback.');
       _modeloCargado = false;
       return false;
     }
-
-    return _modeloCargado;
   }
 
-  /// Initializes the FlutterGemmaPlugin, creating model and chat session.
-  /// Idempotent — safe to call multiple times.
-  Future<void> init({String? modelPath}) async {
-    if (_initialised) return;
+  /// Unified dispatch entry point for student messages.
+  ///
+  /// Native function-calling loop on the 1.4.2 chat session, max
+  /// [maxDispatchRounds] rounds:
+  /// 1. Greetings respond directly via `iniciar_conversacion` (no chat round).
+  /// 2. Each round feeds the query (`addQuery`) and streams the model response.
+  /// 3. `FunctionCallResponse` → executes the tool via [ToolRegistry] →
+  ///    feeds the result back as a tool response → next round.
+  /// 4. `TextResponse` → returns the accumulated final text.
+  /// 5. Round exhaustion → forces a final text with the accumulated results.
+  ///
+  /// The method NEVER returns empty — [FallbackDispatcher] always provides a
+  /// response when the model is unavailable or any round fails.
+  Future<String> procesarMensaje(String userMessage) async {
+    await _cargarFallback();
+    _inicializarRegistry();
 
-    final resolvedModelPath =
-        modelPath ?? await _defaultFlutterGemmaModelPath();
-    // flutter_gemma 1.4.2 removed the parameterless `isModelInstalled`
-    // getter; the legacy path only needs to point the model manager at the
-    // model file when it exists on disk (`setModelPath` re-checks
-    // installation internally). Keep this best-effort and guarded: without
-    // the Phase-2 FlutterGemma bootstrap the registry is uninitialized and
-    // would throw a StateError (an Error, not an Exception) that bypasses
-    // the fallback in cargarModelo().
-    if (File(resolvedModelPath).existsSync()) {
-      try {
-        // ignore: deprecated_member_use
-        await _gemma.modelManager.setModelPath(resolvedModelPath);
-      } catch (e) {
-        debugPrint('GemmaService: setModelPath failed — $e. Continuing.');
-      }
+    // ---- Model not loaded → FallbackDispatcher ----
+    if (!_modeloCargado) {
+      return _dispatchFallback(userMessage);
     }
 
-    _model ??= await _gemma.createModel(
-      preferredBackend: PreferredBackend.gpu,
-      modelType: ModelType.gemmaIt,
-      maxTokens: 8192,
-    );
+    // ---- Greeting → respond directly ----
+    if (_esSaludo(userMessage)) {
+      final saludo =
+          await _registry.run('iniciar_conversacion', {}, _toolContext);
+      return saludo.summary;
+    }
 
-    _inicializarRegistry();
-    final tools = _registry.toFlutterGemmaTools();
+    try {
+      await _adapter.addQuery(Message.text(text: userMessage, isUser: true));
 
-    _chat ??= await _model!.createChat(
-      temperature: SamplingConfig.temperature,
-      topK: SamplingConfig.topK,
-      topP: SamplingConfig.topP,
-      tools: tools,
-      supportsFunctionCalls: true,
-    );
+      final buffer = StringBuffer();
 
-    _initialised = true;
-    _modeloCargado = true;
+      for (var round = 1; round <= maxDispatchRounds; round++) {
+        final ronda = await _generarRonda();
+        if (ronda == null) {
+          // Empty round: the model produced nothing usable.
+          return _dispatchFallback(userMessage);
+        }
+
+        if (ronda.text != null) {
+          buffer.write(ronda.text);
+          return buffer.toString().trim();
+        }
+
+        // Tool round: execute every call and feed the result back.
+        for (final call in ronda.toolCalls!) {
+          final result =
+              await _registry.run(call.name, call.args, _toolContext);
+          buffer.write('${result.summary}\n');
+          await _adapter.addQuery(Message.toolResponse(
+            toolName: call.name,
+            response: {'summary': result.summary, 'payload': result.payload},
+          ));
+        }
+      }
+
+      // Round exhaustion: force a final text with the accumulated results.
+      final forced = buffer.toString().trim();
+      if (forced.isNotEmpty) return forced;
+      return _dispatchFallback(userMessage);
+    } catch (e) {
+      debugPrint('GemmaService: dispatch failed — $e. Using fallback.');
+      return _dispatchFallback(userMessage);
+    }
   }
 
-  Future<String> _defaultFlutterGemmaModelPath() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/$defaultFlutterGemmaModelFile';
+  /// Sends [prompt] to the Gemma model with token-level streaming.
+  ///
+  /// Tokens are delivered via [onToken] at 3-token intervals (UI throttle
+  /// for low-RAM devices). When generation finishes, [onComplete] receives
+  /// a [MessageStats] with timing and token metrics.
+  ///
+  /// Falls back to empty stats (`tokenCount: 0`) when the model is not
+  /// loaded, and catches exceptions/timeouts (default 30s, injectable) to
+  /// deliver partial stats so the caller never hangs.
+  Future<void> sendWithStreaming(
+    String prompt, {
+    void Function(String tokenBatch)? onToken,
+    void Function(MessageStats stats)? onComplete,
+  }) async {
+    await _cargarFallback();
+
+    // ---- guard: model not loaded → degraded empty stats ----
+    if (!_modeloCargado) {
+      onComplete?.call(const MessageStats(tokenCount: 0, totalLatency: 0));
+      return;
+    }
+
+    final startTime = DateTime.now();
+    DateTime? firstTokenTime;
+    int tokenCount = 0;
+    int tokensSinceLastFlush = 0;
+    final tokenBuffer = StringBuffer();
+
+    try {
+      await _adapter.addQuery(Message.text(text: prompt, isUser: true));
+
+      await _adapter
+          .streamResponse()
+          .timeout(_streamTimeout)
+          .forEach((token) {
+        firstTokenTime ??= DateTime.now();
+        tokenCount++;
+        tokenBuffer.write(token);
+        tokensSinceLastFlush++;
+
+        // 3-token UI throttle per spec requirement.
+        if (tokensSinceLastFlush >= 3) {
+          final batch = tokenBuffer.toString();
+          tokenBuffer.clear();
+          tokensSinceLastFlush = 0;
+          onToken?.call(batch);
+        }
+      });
+    } on TimeoutException {
+      debugPrint('GemmaService: stream timed out');
+    } catch (e) {
+      debugPrint('GemmaService: stream error — $e');
+    }
+
+    // Flush any remaining buffered tokens.
+    if (tokensSinceLastFlush > 0) {
+      onToken?.call(tokenBuffer.toString());
+    }
+
+    // Compute final statistics (partial on timeout).
+    final endTime = DateTime.now();
+    final stats = MessageStats.compute(
+      startTime: startTime,
+      firstTokenTime: firstTokenTime,
+      endTime: endTime,
+      tokenCount: tokenCount,
+    );
+
+    onComplete?.call(stats);
   }
+
+  /// Frees native resources. Safe to call even if the model was never loaded.
+  /// Only `close()` — NEVER `deleteModel()` (ADR-5).
+  Future<void> dispose() async {
+    try {
+      await _adapter.close();
+    } catch (e) {
+      debugPrint('GemmaService: adapter close error — $e');
+    }
+    _modeloCargado = false;
+  }
+
+  // ---- legacy Aprendo+ helpers (used by leccion_screen) ----
 
   /// Generates an alternative explanation for a lesson topic.
   ///
@@ -282,9 +389,6 @@ class GemmaService {
       if (response != null && response.isNotEmpty) return response;
 
       debugPrint('GemmaService: generate returned empty — falling back');
-      return _dispatchFallback(_temaToUserMessage(tema, 'explicar'));
-    } on TimeoutException {
-      debugPrint('GemmaService: generate timed out — falling back');
       return _dispatchFallback(_temaToUserMessage(tema, 'explicar'));
     } catch (e) {
       debugPrint('GemmaService: generate failed — $e. Falling back.');
@@ -327,328 +431,62 @@ class GemmaService {
       }
 
       return _dispatchFallbackEjercicios(tema, nivel);
-    } on TimeoutException {
-      debugPrint('GemmaService: ejercicios timed out — falling back');
-      return _dispatchFallbackEjercicios(tema, nivel);
     } catch (e) {
       debugPrint('GemmaService: ejercicios failed — $e. Falling back.');
       return _dispatchFallbackEjercicios(tema, nivel);
     }
   }
 
-  /// Frees the model from memory. Safe to call even if model was never loaded.
-  Future<void> dispose() async {
-    if (!_modeloCargado && !_initialised) return;
-
-    try {
-      await _model?.close();
-    } catch (e) {
-      debugPrint('GemmaService: model close error — $e');
-    }
-
-    _model = null;
-    _chat = null;
-    _initialised = false;
-    _modeloCargado = false;
-  }
-
-  /// Sends [prompt] to the Gemma model with token-level streaming.
-  ///
-  /// Tokens are delivered via [onToken] at 3-token intervals (UI throttle
-  /// for low-RAM devices). When generation finishes, [onComplete] receives
-  /// a [MessageStats] with timing and token metrics.
-  ///
-  /// Falls back to the 4-layer `FallbackDispatcher` when the model is not
-  /// loaded, and catches exceptions to deliver empty stats so the caller
-  /// never hangs.
-  ///
-  /// Timeout: 30 seconds.
-  Future<void> sendWithStreaming(
-    String prompt, {
-    void Function(String tokenBatch)? onToken,
-    void Function(MessageStats stats)? onComplete,
-  }) async {
-    await _cargarFallback();
-
-    // ---- Legacy path: use MethodChannel streaming when gate is off ----
-    if (!useFlutterGemma) {
-      await _sendWithStreamingLegacy(
-        prompt,
-        onToken: onToken,
-        onComplete: onComplete,
-      );
-      return;
-    }
-
-    // ---- guard: model not loaded → fallback ----
-    if (!_modeloCargado || _chat == null) {
-      onComplete?.call(MessageStats(tokenCount: 0, totalLatency: 0));
-      return;
-    }
-
-    final startTime = DateTime.now();
-    DateTime? firstTokenTime;
-    int tokenCount = 0;
-    int tokensSinceLastFlush = 0;
-    final tokenBuffer = StringBuffer();
-
-    try {
-      await _chat!.addQuery(Message.text(text: prompt, isUser: true));
-
-      await _chat!
-          .generateChatResponseAsync()
-          .timeout(
-            const Duration(seconds: 30),
-          )
-          .forEach((res) {
-        if (res is TextResponse) {
-          firstTokenTime ??= DateTime.now();
-          tokenCount++;
-          tokenBuffer.write(res.token);
-          tokensSinceLastFlush++;
-
-          // 3-token UI throttle per spec requirement.
-          if (tokensSinceLastFlush >= 3) {
-            final batch = tokenBuffer.toString();
-            tokenBuffer.clear();
-            tokensSinceLastFlush = 0;
-            onToken?.call(batch);
-          }
-        } else if (res is FunctionCallResponse) {
-          // Tool execution handled by dispatch loop in procesarMensaje().
-          // For raw sendWithStreaming, pass the function call name as token.
-          onToken?.call('[tool:${res.name}]');
-        }
-      });
-    } on TimeoutException {
-      debugPrint('GemmaService: stream timed out');
-    } catch (e) {
-      debugPrint('GemmaService: stream error — $e');
-    }
-
-    // Flush any remaining buffered tokens.
-    if (tokensSinceLastFlush > 0) {
-      onToken?.call(tokenBuffer.toString());
-    }
-
-    // Compute final statistics.
-    final endTime = DateTime.now();
-    final stats = MessageStats.compute(
-      startTime: startTime,
-      firstTokenTime: firstTokenTime,
-      endTime: endTime,
-      tokenCount: tokenCount,
-    );
-
-    onComplete?.call(stats);
-  }
-
-  /// Unified dispatch method — the single entry point for all student
-  /// messages. Replaces the monolithic `generarExplicacion` and
-  /// `generarEjerciciosRefuerzo` methods with a feature-gated dispatch
-  /// loop backed by XML tool calling (Phase 5) extended for Yachay
-  /// Socratic tutoring (Phase 6).
-  ///
-  /// ## Flow
-  ///
-  /// 1. **Feature gates**: if `useXmlDispatch == false`, routes to legacy
-  ///    methods. If `useYachayOrchestrator == true`, uses the Yachay
-  ///    persona with 13 tools and 7-round loop.
-  /// 2. **Fallback**: runs the 4-layer `FallbackDispatcher` when the
-  ///    model is not loaded — greetings, keyword routing, tool execution,
-  ///    generic encouragement.
-  /// 3. **Dispatch loop** (max 7 rounds):
-  ///    - Stream inference via `sendWithStreaming`, accumulating tokens.
-  ///    - Parse output with `findNextAction`:
-  ///      - `speak` (no action tag) → return accumulated text.
-  ///      - `tool` → execute via `ToolRegistry` → feed result back → loop.
-  ///    - On XML parse failure → `detectForcedTool` rescue → execute tool.
-  ///    - On round exhaustion → force speak → return what we have.
-  ///
-  /// The method NEVER returns empty — `FallbackDispatcher` layer 4 always
-  /// provides a generic encouragement when all else fails.
-  Future<String> procesarMensaje(String userMessage) async {
-    await _cargarFallback();
-    _inicializarRegistry();
-
-    // ---- Feature gate: useXmlDispatch=false → legacy ----
-    if (!useXmlDispatch) {
-      debugPrint('GemmaService: useXmlDispatch=false → routing to legacy');
-      return _dispatchFallback(userMessage);
-    }
-
-    // ---- Dev mode: route to desktop llama-server ----
-    if (devMode) {
-      return _devHttpInference(userMessage);
-    }
-
-    // ---- Model not loaded → FallbackDispatcher ----
-    if (!_modeloCargado) {
-      return _dispatchFallback(userMessage);
-    }
-
-    // ---- Direct test: quick inference without full dispatch loop ----
-    if (_modeloCargado && _chat != null) {
-      try {
-        await _chat!.addQuery(Message.text(
-          text: 'Eres Yachay, tutor peruano. Responde max 2 oraciones.\n'
-              'Pregunta: $userMessage\nRespuesta:',
-          isUser: true,
-        ));
-        final response = await _chat!.generateChatResponse();
-        if (response is TextResponse && response.token.isNotEmpty) {
-          logToFile(
-              'TEST OK: ${response.token.substring(0, response.token.length.clamp(0, 60))}');
-          return 'Yachay: ${response.token}';
-        }
-        logToFile('TEST NULL');
-      } catch (e) {
-        logToFile('TEST ERROR: $e');
-      }
-    }
-
-    return _dispatchFallback(userMessage);
-  }
-
-  // ---- private: legacy MethodChannel streaming (preserved from Phase 5) ----
-
-  Future<void> _sendWithStreamingLegacy(
-    String prompt, {
-    void Function(String tokenBatch)? onToken,
-    void Function(MessageStats stats)? onComplete,
-  }) async {
-    if (!_modeloCargado) {
-      onComplete?.call(MessageStats(tokenCount: 0, totalLatency: 0));
-      return;
-    }
-
-    const streamChannel = MethodChannel('gemma_engine_stream');
-    const channel = MethodChannel('gemma_engine');
-
-    final completer = Completer<void>();
-    final startTime = DateTime.now();
-    DateTime? firstTokenTime;
-    int tokenCount = 0;
-    int tokensSinceLastFlush = 0;
-    final tokenBuffer = StringBuffer();
-
-    streamChannel.setMethodCallHandler((MethodCall call) async {
-      try {
-        switch (call.method) {
-          case 'onToken':
-            final token = call.arguments as String;
-            firstTokenTime ??= DateTime.now();
-            tokenCount++;
-            tokenBuffer.write(token);
-            tokensSinceLastFlush++;
-
-            if (tokensSinceLastFlush >= 3) {
-              final batch = tokenBuffer.toString();
-              tokenBuffer.clear();
-              tokensSinceLastFlush = 0;
-              onToken?.call(batch);
-            }
-
-          case 'onComplete':
-            if (tokensSinceLastFlush > 0) {
-              onToken?.call(tokenBuffer.toString());
-            }
-
-            final endTime = DateTime.now();
-            final stats = MessageStats.compute(
-              startTime: startTime,
-              firstTokenTime: firstTokenTime,
-              endTime: endTime,
-              tokenCount: tokenCount,
-            );
-
-            onComplete?.call(stats);
-            streamChannel.setMethodCallHandler(null);
-            if (!completer.isCompleted) completer.complete();
-        }
-      } catch (e) {
-        debugPrint('GemmaService: legacy stream handler error — $e');
-      }
-      return null;
-    });
-
-    try {
-      await channel.invokeMethod('generateStream', {
-        'prompt': prompt,
-        'systemPrompt': systemPrompt,
-        'temperature': SamplingConfig.temperature,
-        'maxTokens': SamplingConfig.maxTokens,
-        'topP': SamplingConfig.topP,
-        'topK': SamplingConfig.topK,
-        'repeatPenalty': SamplingConfig.repeatPenalty,
-      }).timeout(const Duration(seconds: 30));
-    } on TimeoutException {
-      streamChannel.setMethodCallHandler(null);
-      if (!completer.isCompleted) {
-        onComplete?.call(MessageStats(
-          tokenCount: tokenCount,
-          totalLatency:
-              DateTime.now().difference(startTime).inMicroseconds / 1000000.0,
-        ));
-        completer.complete();
-      }
-    } catch (e) {
-      streamChannel.setMethodCallHandler(null);
-      if (!completer.isCompleted) {
-        onComplete?.call(MessageStats(tokenCount: 0, totalLatency: 0));
-        completer.complete();
-      }
-    }
-
-    await completer.future;
-  }
-
   // ---- private: synchronous generation helper ----
 
   Future<String?> _generateSync(String prompt) async {
-    if (_chat == null) return null;
-
     try {
-      await _chat!.addQuery(Message.text(text: prompt, isUser: true));
-      final response = await _chat!.generateChatResponse().timeout(
-            const Duration(seconds: 30),
-          );
-      if (response is TextResponse) return response.token;
+      await _adapter.addQuery(Message.text(text: prompt, isUser: true));
+      final buffer = StringBuffer();
+      await _adapter
+          .streamResponse()
+          .timeout(_streamTimeout)
+          .forEach((token) => buffer.write(token));
+      final text = buffer.toString().trim();
+      return text.isNotEmpty ? text : null;
     } catch (_) {
-      // Fall through to null.
+      // Timeout or stream failure → null → caller falls back.
+      return null;
     }
-
-    return null;
   }
 
-  // ---- private: legacy MethodChannel cargarModelo ----
+  // ---- private: dispatch round ----
 
-  Future<bool> _cargarModeloLegacy({String? modelPath}) async {
-    try {
-      const channel = MethodChannel('gemma_engine');
-      final path = modelPath ??
-          '/data/data/com.aprendoplus.app/files/google_gemma-4-E2B-it-IQ2_M.gguf';
+  /// Runs one inference round over `streamChatResponse()` and classifies the
+  /// outcome: accumulated text, tool calls, or nothing usable.
+  Future<_RondaResult?> _generarRonda() async {
+    final buffer = StringBuffer();
+    final toolCalls = <FunctionCallResponse>[];
+    var sawToolCall = false;
 
-      final result = await channel.invokeMethod<bool>(
-        'loadModel',
-        {'modelPath': path},
-      ).timeout(const Duration(seconds: 30));
+    await _adapter
+        .streamChatResponse()
+        .timeout(_streamTimeout)
+        .forEach((res) {
+      if (res is TextResponse) {
+        buffer.write(res.token);
+      } else if (res is FunctionCallResponse) {
+        sawToolCall = true;
+        toolCalls.add(res);
+      } else if (res is ParallelFunctionCallResponse) {
+        sawToolCall = true;
+        toolCalls.addAll(res.calls);
+      }
+    });
 
-      _modeloCargado = result ?? false;
-      return _modeloCargado;
-    } on TimeoutException {
-      debugPrint('GemmaService: legacy loadModel timed out — using fallback');
-      _modeloCargado = false;
-      return false;
-    } on MissingPluginException {
-      debugPrint('GemmaService: legacy channel not available — using fallback');
-      _modeloCargado = false;
-      return false;
-    } catch (e) {
-      debugPrint('GemmaService: legacy loadModel failed — $e');
-      _modeloCargado = false;
-      return false;
+    if (sawToolCall) {
+      return _RondaResult(toolCalls: toolCalls);
     }
+    final text = buffer.toString();
+    if (text.trim().isNotEmpty) {
+      return _RondaResult(text: text);
+    }
+    return null;
   }
 
   // ---- private: tool registry initialization ----
@@ -675,95 +513,32 @@ class GemmaService {
     _registry.register(generarResumenAlumnoSpec);
     _registry.register(iniciarConversacionSpec);
 
-    _toolContext = ToolContext(fallbackData: _fallbackData);
+    // Preserve services injected via setToolContext (e.g. student state).
+    _toolContext = ToolContext(
+      studentState: _toolContext.studentState,
+      dbService: _toolContext.dbService,
+      diagnosticoService: _toolContext.diagnosticoService,
+      curriculum: _toolContext.curriculum,
+      fallbackData: _fallbackData,
+    );
     _registryInitialized = true;
   }
 
-  // ---- private: dispatch-loop prompt builders ----
-
-  String _buildToolPrompt(String userMessage) {
-    final toolList = _registry.listTools();
-    final grammar = buildGrammar(_registry);
-    final prompt = useYachayOrchestrator
-        ? SystemPrompt.buildYachay(toolList)
-        : SystemPrompt.build(toolList);
-
-    return '$systemPrompt\n\n$prompt\n\n'
-        'Mensaje del estudiante: $userMessage\n\n'
-        '${grammar.isNotEmpty ? "Grammar constraint: $grammar\n\n" : ""}'
-        'Responde usando el formato de acción XML si necesitas usar una herramienta. '
-        'Si no necesitas herramienta, responde directamente al estudiante.';
-  }
-
-  String _buildToolResultPrompt(String toolName, String result) {
-    return '$systemPrompt\n\n'
-        'Ejecutaste la herramienta "$toolName" y obtuviste este resultado:\n\n'
-        '$result\n\n'
-        'Ahora responde al estudiante en español peruano, '
-        'con un tono cálido y motivador. '
-        'Si necesitas más información, puedes usar otra herramienta. '
-        'Si ya tienes suficiente, responde directamente.';
-  }
-
-  // ---- private: fallback loading ----
-
-  Future<void> _cargarFallback() async {
-    if (_fallbackLoaded) return;
-
-    try {
-      final raw = await rootBundle.loadString(
-        'assets/data/fallback_responses.json',
-      );
-      _fallbackData = jsonDecode(raw) as Map<String, dynamic>;
-    } catch (e) {
-      debugPrint('GemmaService: failed to load fallback data — $e');
-      _fallbackData = {};
-    }
-
-    _dispatcher = FallbackDispatcher(
-      fallbackData: _fallbackData ?? <String, dynamic>{},
-    );
-
-    _fallbackLoaded = true;
-  }
-
-  // ---- private: fallback dispatch ----
-
-  Future<String> _dispatchFallback(String userMessage) async {
-    if (_dispatcher == null) {
-      return 'Estoy aquí para ayudarte. ¿Qué tema te gustaría repasar hoy?';
-    }
-    return _dispatcher!.dispatch(userMessage);
-  }
-
-  String _fallbackExplicacion(String tema, String nivel) {
-    final topic = _fallbackData?[tema];
-    if (topic is! Map) return _genericExplicacion(tema);
-
-    var levelData = topic[nivel];
-    if (levelData == null) levelData = topic['1'];
-    if (levelData == null) return _genericExplicacion(tema);
-
-    final entry = levelData as Map<String, dynamic>;
-    return entry['explicacion'] as String? ?? _genericExplicacion(tema);
-  }
-
-  List<Map<String, dynamic>> _fallbackEjercicios(String tema, String nivel) {
-    final topic = _fallbackData?[tema];
-    if (topic is! Map) return _genericEjercicios(tema);
-
-    var levelData = topic[nivel];
-    if (levelData == null) levelData = topic['1'];
-    if (levelData == null) return _genericEjercicios(tema);
-
-    final entry = levelData as Map<String, dynamic>;
-    final ejercicios = entry['ejercicios'];
-    if (ejercicios is List) return ejercicios.cast<Map<String, dynamic>>();
-
-    return _genericEjercicios(tema);
-  }
-
   // ---- private: prompt builders ----
+
+  String _systemInstruction() {
+    return useYachayOrchestrator
+        ? SystemPrompt.buildYachay(_registry.listTools())
+        : SystemPrompt.build(_registry.listTools());
+  }
+
+  bool _esSaludo(String message) {
+    final m = message.trim().toLowerCase();
+    return RegExp(
+      r'^(hola|buenas|buen dia|buenos dias|buen día|buenos días|'
+      r'buenas tardes|buenas noches|hey|que tal|qué tal|saludos)\b',
+    ).hasMatch(m);
+  }
 
   String _buildExplanationPrompt({
     required String tema,
@@ -805,15 +580,49 @@ class GemmaService {
     return buffer.toString();
   }
 
-  // ---- private: generic fallbacks (last resort) ----
+  // ---- private: fallback loading ----
 
-  String _genericExplicacion(String tema) {
-    final clean = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
-    return 'Vamos a repasar "$clean" juntos. '
-        'Lee nuevamente la explicacion de la leccion con calma. '
-        'Identifica la parte que no te quedo clara y pideme ayuda '
-        'especifica con esa seccion. Recuerda: equivocarse es parte '
-        'del aprendizaje. Sigue practicando.';
+  Future<void> _cargarFallback() async {
+    if (_fallbackLoaded) return;
+
+    try {
+      final raw = await rootBundle.loadString(
+        'assets/data/fallback_responses.json',
+      );
+      _fallbackData = jsonDecode(raw) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('GemmaService: failed to load fallback data — $e');
+      _fallbackData = {};
+    }
+
+    _dispatcher = FallbackDispatcher(
+      fallbackData: _fallbackData ?? <String, dynamic>{},
+    );
+
+    _fallbackLoaded = true;
+  }
+
+  // ---- private: fallback dispatch ----
+
+  Future<String> _dispatchFallback(String userMessage) async {
+    if (_dispatcher == null) {
+      return 'Estoy aquí para ayudarte. ¿Qué tema te gustaría repasar hoy?';
+    }
+    return _dispatcher!.dispatch(userMessage);
+  }
+
+  List<Map<String, dynamic>> _fallbackEjercicios(String tema, String nivel) {
+    final topic = _fallbackData?[tema];
+    if (topic is! Map) return _genericEjercicios(tema);
+
+    final levelData = topic[nivel] ?? topic['1'];
+    if (levelData == null) return _genericEjercicios(tema);
+
+    final entry = levelData as Map<String, dynamic>;
+    final ejercicios = entry['ejercicios'];
+    if (ejercicios is List) return ejercicios.cast<Map<String, dynamic>>();
+
+    return _genericEjercicios(tema);
   }
 
   List<Map<String, dynamic>> _genericEjercicios(String tema) {
@@ -827,8 +636,6 @@ class GemmaService {
       },
     ];
   }
-
-  // ---- private: helpers ----
 
   String _temaToUserMessage(String tema, String intent) {
     final clean = tema.replaceAll(RegExp(r'^[A-Z]\d+_'), '');
@@ -859,52 +666,13 @@ class GemmaService {
     }
     return _fallbackEjercicios(tema, nivel);
   }
+}
 
-  /// Uses OpenAI-compatible /v1/chat/completions endpoint (dev mode).
-  Future<String> _devHttpInference(String userMessage) async {
-    try {
-      final sysPrompt = useYachayOrchestrator
-          ? 'Eres Yachay, un tutor de aritmetica para estudiantes peruanos de secundaria. '
-              'Eres calido, paciente y motivador. Usas ejemplos del contexto peruano '
-              '(soles, mercados, combis, chacras). NUNCA das respuestas directas. '
-              'Usas el metodo socratico: guias al alumno con preguntas para que '
-              'descubra por si mismo. Cada respuesta tuya debe incluir una pregunta '
-              'de seguimiento. Responde en espanol peruano, maximo 3 oraciones.'
-          : systemPrompt;
-      final body = jsonEncode({
-        'model': 'gemma',
-        'messages': [
-          {'role': 'system', 'content': sysPrompt},
-          {'role': 'user', 'content': userMessage},
-        ],
-        'temperature': SamplingConfig.temperature,
-        'max_tokens': 400,
-      });
+/// Outcome of a single dispatch round: either accumulated [text] or the
+/// [toolCalls] the model requested (never both).
+class _RondaResult {
+  final String? text;
+  final List<FunctionCallResponse>? toolCalls;
 
-      final client = HttpClient();
-      try {
-        final request = await client.postUrl(
-          Uri.parse('$devServerUrl/v1/chat/completions'),
-        );
-        request.headers.contentType = ContentType.json;
-        request.write(body);
-        final response = await request.close();
-        if (response.statusCode == 200) {
-          final raw = await response.transform(utf8.decoder).join();
-          final data = jsonDecode(raw) as Map<String, dynamic>;
-          final choices = data['choices'] as List;
-          if (choices.isNotEmpty) {
-            final msg = choices[0]['message'] as Map<String, dynamic>;
-            final content = (msg['content'] as String?)?.trim() ?? '';
-            if (content.isNotEmpty) return content;
-          }
-        }
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      debugPrint('GemmaService: dev HTTP error: $e → fallback');
-    }
-    return _dispatchFallback(userMessage);
-  }
+  const _RondaResult({this.text, this.toolCalls});
 }

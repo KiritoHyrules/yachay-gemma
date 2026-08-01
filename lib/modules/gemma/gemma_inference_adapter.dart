@@ -30,6 +30,14 @@ abstract class GemmaInferenceAdapter {
     required List<Tool> tools,
   });
 
+  /// Feeds a message into the active chat session.
+  ///
+  /// Used both for the student prompt (`Message.text(..., isUser: true)`)
+  /// and for tool results (`Message.toolResponse(...)`) in the native
+  /// dispatch loop. Must be called before listening to [streamResponse] /
+  /// [streamChatResponse] so the session history is complete.
+  Future<void> addQuery(Message message);
+
   /// Raw token stream of the model session (`Stream<String>`).
   Stream<String> streamResponse();
 
@@ -93,14 +101,28 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
   }
 
   @override
-  Stream<String> streamResponse() {
-    final session = _model?.session;
-    if (session == null) {
+  Future<void> addQuery(Message message) async {
+    final chat = _chat;
+    if (chat == null) {
       throw StateError(
-        'GemmaInferenceAdapter: no active session; call loadModel() first.',
+        'GemmaInferenceAdapter: no chat session; call createChat() first.',
       );
     }
-    return session.getResponseAsync();
+    await chat.addQuery(message);
+  }
+
+  @override
+  Stream<String> streamResponse() {
+    final chat = _chat;
+    if (chat == null) {
+      throw StateError(
+        'GemmaInferenceAdapter: no chat session; call createChat() first.',
+      );
+    }
+    // The chat's session is the model's single active session (createChat
+    // overwrites `InferenceModel.session`); reading from it guarantees the
+    // query added via [addQuery] is the one being generated.
+    return chat.session.getResponseAsync();
   }
 
   @override

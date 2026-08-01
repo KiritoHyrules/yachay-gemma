@@ -7,19 +7,25 @@ import 'package:aprendo_plus/modules/gemma/gemma_inference_adapter.dart';
 /// In-memory [GemmaInferenceAdapter] for tests.
 ///
 /// Records every call (`loadModel` args, `createChat` configuration,
-/// `close`) so contract tests can assert that the orchestration calls the
-/// seam correctly — without touching the native plugin. Emission streams are
-/// injectable so streaming tests can simulate token and tool-call delivery.
+/// `addQuery` history, `close`) so contract tests can assert that the
+/// orchestration calls the seam correctly — without touching the native
+/// plugin. Emission streams are injectable so streaming tests can simulate
+/// token and tool-call delivery.
+///
+/// For multi-round dispatch tests, [setChatResponseQueue] provides one
+/// `Stream<ModelResponse>` per round; each [streamChatResponse] call pops the
+/// next stream from the queue.
 class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   GemmaInferenceAdapterFake({
     Stream<String>? tokens,
     Stream<ModelResponse>? chatResponses,
     this.loadModelResult = true,
-  })  : _tokens = tokens ?? const Stream<String>.empty(),
-        _chatResponses = chatResponses ?? const Stream<ModelResponse>.empty();
+  })  : _tokens = tokens ?? Stream<String>.empty(),
+        _chatResponses = chatResponses ?? Stream<ModelResponse>.empty();
 
   Stream<String> _tokens;
   Stream<ModelResponse> _chatResponses;
+  final List<Stream<ModelResponse>> _chatResponseQueue = [];
 
   /// Result returned by [loadModel] (default: success).
   final bool loadModelResult;
@@ -34,6 +40,12 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   List<Tool>? tools;
   bool closed = false;
 
+  /// Every message fed into the chat session, in order.
+  final List<Message> addedQueries = [];
+
+  /// Number of [streamChatResponse] listens (one per dispatch round).
+  int streamChatResponseCalls = 0;
+
   /// Replaces the token stream emitted by the next [streamResponse] call.
   void setTokens(Stream<String> tokens) => _tokens = tokens;
 
@@ -41,6 +53,14 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   /// call.
   void setChatResponses(Stream<ModelResponse> responses) =>
       _chatResponses = responses;
+
+  /// Provides one `Stream<ModelResponse>` per dispatch round; each
+  /// [streamChatResponse] call pops the next stream.
+  void setChatResponseQueue(List<Stream<ModelResponse>> responses) {
+    _chatResponseQueue
+      ..clear()
+      ..addAll(responses);
+  }
 
   @override
   PreferredBackend? get activeBackend =>
@@ -66,10 +86,21 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   }
 
   @override
+  Future<void> addQuery(Message message) async {
+    addedQueries.add(message);
+  }
+
+  @override
   Stream<String> streamResponse() => _tokens;
 
   @override
-  Stream<ModelResponse> streamChatResponse() => _chatResponses;
+  Stream<ModelResponse> streamChatResponse() {
+    streamChatResponseCalls++;
+    if (_chatResponseQueue.isNotEmpty) {
+      return _chatResponseQueue.removeAt(0);
+    }
+    return _chatResponses;
+  }
 
   @override
   Future<void> close() async {
