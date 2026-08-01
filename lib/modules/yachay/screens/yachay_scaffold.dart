@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../../modules/gemma/gemma_service.dart';
+import '../../../modules/gemma/model_status.dart';
 import 'chat_screen.dart';
 import 'camino_screen.dart';
 import 'perfil_screen.dart';
 
 /// Root scaffold with bottom navigation: Chat | Camino | Perfil.
 /// Preserves tab state via IndexedStack. Wires ChatScreen to GemmaService.
+///
+/// The model status chip listens to [ModelStatusController] (fed by
+/// [GemmaService]) and renders the five bootstrap states; it never shows the
+/// generic "Offline" text.
 class YachayScaffold extends StatefulWidget {
-  const YachayScaffold({super.key});
+  const YachayScaffold({super.key, this.gemmaService});
+
+  /// Injectable for widget tests; production uses [GemmaService.instance].
+  final GemmaService? gemmaService;
 
   @override
   State<YachayScaffold> createState() => _YachayScaffoldState();
@@ -18,10 +26,10 @@ class _YachayScaffoldState extends State<YachayScaffold> {
   int _currentIndex = 0;
   final _messages = <ChatMessage>[];
   bool _isThinking = false;
-  final _gemmaService = GemmaService.instance;
-  bool _modelLoaded = false;
-  bool _modelFailed = false;
-  String _loadingStatus = 'Inicializando...';
+  late final GemmaService _gemmaService =
+      widget.gemmaService ?? GemmaService.instance;
+  late final ModelStatusController _statusController =
+      _gemmaService.statusController;
   final _debugLog = <String>[];
   bool _showDebug = false;
 
@@ -40,15 +48,8 @@ class _YachayScaffoldState extends State<YachayScaffold> {
     try {
       final loaded = await _gemmaService.cargarModelo();
       _log('cargarModelo() retornó: $loaded');
-      if (mounted) {
-        setState(() {
-          _modelLoaded = loaded;
-          _modelFailed = !loaded;
-        });
-      }
     } catch (e) {
       _log('ERROR: $e');
-      if (mounted) setState(() => _modelFailed = true);
     }
   }
 
@@ -117,26 +118,24 @@ class _YachayScaffoldState extends State<YachayScaffold> {
             ),
             const SizedBox(width: 8),
             const Text('Yachay'),
-            if (!_modelLoaded && !_modelFailed) ...[
-              const SizedBox(width: 8),
-              const SizedBox(
-                width: 12, height: 12,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
-              ),
-            ],
           ],
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Chip(
-              avatar: Icon(
-                _modelLoaded ? Icons.check_circle : Icons.info_outline,
-                size: 16,
-                color: _modelLoaded ? Colors.green : Colors.orange,
-              ),
-              label: Text(_modelLoaded ? 'Gemma' : _modelFailed ? 'Offline' : 'Cargando...'),
-              backgroundColor: const Color(0xFF1565C0).withOpacity(0.1),
+            child: ValueListenableBuilder<ModelStatusInfo>(
+              valueListenable: _statusController,
+              builder: (context, info, _) {
+                return Chip(
+                  avatar: Icon(
+                    _statusIcon(info.status),
+                    size: 16,
+                    color: _statusColor(info.status),
+                  ),
+                  label: Text(info.label),
+                  backgroundColor: const Color(0xFF1565C0).withOpacity(0.1),
+                );
+              },
             ),
           ),
         ],
@@ -195,12 +194,12 @@ class _YachayScaffoldState extends State<YachayScaffold> {
       _isThinking = true;
     });
 
-    // Wait for model if still loading (up to 30s).
-    if (!_modelLoaded) {
-      for (int i = 0; i < 30; i++) {
-        await Future.delayed(const Duration(seconds: 1));
-        if (_modelLoaded) break;
-      }
+    // Bootstrap: ensure the model is ready before chatting. The whole flow is
+    // bounded by a timeout inside GemmaService so a missing or blocked
+    // download can never deadlock the UI; on failure the app keeps operating
+    // in degraded (no-AI) mode via FallbackDispatcher.
+    if (!_gemmaService.modeloCargado) {
+      await _bootstrapModel();
     }
 
     try {
@@ -219,6 +218,43 @@ class _YachayScaffoldState extends State<YachayScaffold> {
         ));
         _isThinking = false;
       });
+    }
+  }
+
+  Future<void> _bootstrapModel() async {
+    try {
+      final ready = await _gemmaService.bootstrapModelReady();
+      _log('bootstrapModelReady() retornó: $ready');
+    } catch (e) {
+      _log('ERROR en bootstrap: $e');
+    }
+  }
+
+  IconData _statusIcon(ModelStatus status) {
+    switch (status) {
+      case ModelStatus.ready:
+        return Icons.check_circle;
+      case ModelStatus.error:
+        return Icons.error_outline;
+      case ModelStatus.downloading:
+        return Icons.downloading;
+      case ModelStatus.verifying:
+        return Icons.verified_outlined;
+      case ModelStatus.noModel:
+        return Icons.info_outline;
+    }
+  }
+
+  Color _statusColor(ModelStatus status) {
+    switch (status) {
+      case ModelStatus.ready:
+        return Colors.green;
+      case ModelStatus.error:
+        return Colors.red;
+      case ModelStatus.downloading:
+      case ModelStatus.verifying:
+      case ModelStatus.noModel:
+        return Colors.orange;
     }
   }
 }

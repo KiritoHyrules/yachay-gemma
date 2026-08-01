@@ -22,7 +22,12 @@ import '../yachay/tool_handlers/generar_resumen_alumno.dart';
 import '../yachay/tool_handlers/iniciar_conversacion.dart';
 import 'fallback_dispatcher.dart';
 import 'gemma_inference_adapter.dart';
+import 'huggingface_oauth.dart';
+import 'model_download_service.dart';
+import 'model_installer.dart';
+import 'model_status.dart';
 import 'system_prompt.dart';
+import 'token_store.dart';
 import 'tool_registry.dart';
 import 'tool_handlers/explicar_tema.dart';
 import 'tool_handlers/generar_ejercicios.dart';
@@ -106,16 +111,25 @@ class GemmaService {
     _registryInitialized = false;
     _toolContext = const ToolContext();
     _registry.clearForTest();
+    statusController.reset();
   }
 
   final GemmaInferenceAdapter _adapter;
   final Duration _streamTimeout;
+
+  /// Status machine exposed to the UI chip.
+  ///
+  /// The scaffold listens to this notifier and renders
+  /// [ModelStatusInfo.label]. The download service feeds the download/verify
+  /// transitions; [cargarModelo] feeds `ready` with the effective backend.
+  final ModelStatusController statusController = ModelStatusController();
 
   // ---- state ----
   bool _modeloCargado = false;
   Map<String, dynamic>? _fallbackData;
   bool _fallbackLoaded = false;
   FallbackDispatcher? _dispatcher;
+  ModelDownloadService? _downloadServiceInstance;
 
   final ToolRegistry _registry = ToolRegistry();
   ToolContext _toolContext = const ToolContext();
@@ -180,6 +194,10 @@ class GemmaService {
   ///
   /// Returns `true` only when the model is ready for inference. ANY failure
   /// (no model installed, native error) degrades to fallback responses.
+  ///
+  /// Feeds [statusController]: `ready` with the effective backend on success;
+  /// a model absent at boot keeps the chip in `Sin modelo` (the download
+  /// service owns error transitions during install).
   Future<bool> cargarModelo({String? modelPath}) async {
     if (_modeloCargado) return true;
 
@@ -190,15 +208,28 @@ class GemmaService {
     try {
       final ok = await _adapter.loadModel(maxTokens: 8192);
       if (!ok) {
+        // No active model (first run / not installed): stay degraded. The
+        // chip keeps its real state (`Sin modelo`) — never a false `Listo`.
         _modeloCargado = false;
         return false;
       }
-      await _adapter.createChat(
-        systemInstruction: _systemInstruction(),
-        maxOutputTokens: SamplingConfig.maxTokens,
-        tools: _registry.toFlutterGemmaTools(),
-      );
+      try {
+        await _adapter.createChat(
+          systemInstruction: _systemInstruction(),
+          maxOutputTokens: SamplingConfig.maxTokens,
+          tools: _registry.toFlutterGemmaTools(),
+        );
+      } catch (e) {
+        debugPrint('GemmaService: createChat failed — $e. Using fallback.');
+        _modeloCargado = false;
+        statusController.error(
+          'El modelo está instalado pero no se pudo iniciar la sesión de '
+          'chat. Se usará el modo sin IA.',
+        );
+        return false;
+      }
       _modeloCargado = true;
+      statusController.ready(_adapter.activeBackend);
       return true;
     } catch (e) {
       debugPrint('GemmaService: loadModel/createChat failed — $e. '
@@ -206,6 +237,43 @@ class GemmaService {
       _modeloCargado = false;
       return false;
     }
+  }
+
+  /// Bounded bootstrap: ensures the model is downloaded/verified (feeding
+  /// [statusController]) and then loads the chat session.
+  ///
+  /// The whole flow is bounded by [timeout] so the scaffold's send path can
+  /// never deadlock on the network. Any failure simply returns `false` and
+  /// the app keeps operating in degraded (no-AI) mode — it never crashes.
+  Future<bool> bootstrapModelReady({
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    if (_modeloCargado) return true;
+    try {
+      final result =
+          await _downloadService().ensureModelReady().timeout(timeout);
+      if (!result.success) return false;
+      return cargarModelo();
+    } on TimeoutException {
+      debugPrint('GemmaService: model bootstrap timed out — using fallback.');
+      return false;
+    } catch (e) {
+      debugPrint('GemmaService: model bootstrap failed — $e. Using fallback.');
+      return false;
+    }
+  }
+
+  /// Lazily builds the real download pipeline wired to [statusController].
+  ///
+  /// Plugin-backed seams are only touched when [bootstrapModelReady] runs, so
+  /// pure unit tests never reach the native surface.
+  ModelDownloadService _downloadService() {
+    return _downloadServiceInstance ??= ModelDownloadService(
+      installer: FlutterGemmaModelInstaller(),
+      verifier: const GemmaModelIntegrityVerifier(),
+      tokens: HuggingFaceOAuth(store: const SharedPrefsTokenStore()),
+      status: statusController,
+    );
   }
 
   /// Unified dispatch entry point for student messages.
@@ -578,6 +646,17 @@ class GemmaService {
         'Ejemplo: [{"enunciado": "...", "opciones": ["a","b","c","d"], '
         '"respuestaCorrecta": "c"}]');
     return buffer.toString();
+  }
+
+  /// Test seam: pre-populates the fallback data so [_cargarFallback] skips
+  /// the rootBundle asset load entirely. Widget tests use this to keep the
+  /// whole bootstrap chain inside the fake-async zone (real asset IO does not
+  /// progress there). Production code never calls this.
+  @visibleForTesting
+  void setFallbackDataForTest(Map<String, dynamic> data) {
+    _fallbackData = data;
+    _fallbackLoaded = true;
+    _dispatcher = FallbackDispatcher(fallbackData: data);
   }
 
   // ---- private: fallback loading ----
