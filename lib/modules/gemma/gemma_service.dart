@@ -57,10 +57,9 @@ class SamplingConfig {
   /// Repeat penalty: 1.1 — mild discouragement of token repetition.
   static const double repeatPenalty = 1.1;
 
-  /// Max output tokens per generation: 1024 — sufficient for tool-calling
-  /// and multi-step explanations (was 256). This is the `maxOutputTokens`
-  /// passed to `createChat` (generation cap, not the context window).
-  static const int maxTokens = 1024;
+  /// Max output tokens per generation: 512 — balanced for 4GB RAM devices
+  /// (A32). Keeps responses under ~4 minutes on CPU inference.
+  static const int maxTokens = 512;
 }
 
 /// Default LiteRT model file used by `flutter_gemma`.

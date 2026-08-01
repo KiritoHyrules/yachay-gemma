@@ -112,9 +112,7 @@ class FallbackDispatcher {
 
   // ---- Layer 1: Trivial Greeting Gate ----
 
-  /// Checks [lowered] against the `trivial_greetings` pattern table.
-  /// Each pattern is treated as a plain-text substring (no RegExp) for
-  /// deterministic, allocation-light matching.
+  /// Checks [lowered] against the `trivial_greetings` regex table.
   /// Returns the matching response or `null` if no greeting matches.
   String? _layer1Greeting(String lowered) {
     final greetings = _data['trivial_greetings'];
@@ -122,12 +120,16 @@ class FallbackDispatcher {
 
     for (final entry in greetings) {
       if (entry is! Map<String, dynamic>) continue;
-      final pattern = (entry['pattern'] ?? entry['regex']) as String?;
+      final pattern = entry['regex'] as String?;
       final response = entry['response'] as String?;
       if (pattern == null || response == null) continue;
 
-      if (lowered.contains(pattern.toLowerCase())) {
-        return response;
+      try {
+        if (RegExp(pattern, caseSensitive: false).hasMatch(lowered)) {
+          return response;
+        }
+      } catch (_) {
+        // Malformed regex — skip this entry.
       }
     }
 
