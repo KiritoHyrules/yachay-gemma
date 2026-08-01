@@ -1,0 +1,384 @@
+{
+  "materia": "Aritmética",
+  "grado": 1,
+  "competencias": [
+    {
+      "id": "arit_nn",
+      "titulo": "Números Naturales",
+      "descripcion": "Comprender y operar con números naturales en contextos cotidianos",
+      "dificultad": 1,
+      "subtemas": [
+        {
+          "id": "arit_nn_01a",
+          "titulo": "Valor Posicional",
+          "prerrequisitos": [],
+          "ejemplo": "¿Qué valor tiene el 5 en 352?"
+        },
+        {
+          "id": "arit_nn_01b",
+          "titulo": "Lectura y Escritura",
+          "prerrequisitos": ["arit_nn_01a"],
+          "ejemplo": "Escribe 1208 en palabras"
+        },
+        {
+          "id": "arit_nn_02a",
+          "titulo": "Suma sin llevar",
+          "prerrequisitos": ["arit_nn_01a"],
+          "ejemplo": "Calcula 234 + 512"
+        },
+        {
+          "id": "arit_nn_02b",
+          "titulo": "Resta sin llevar",
+          "prerrequisitos": ["arit_nn_02a"],
+          "ejemplo": "Calcula 876 - 341"
+        }
+      ]
+    },
+    {
+      "id": "arit_ne",
+      "titulo": "Números Enteros",
+      "descripcion": "Comprender el concepto de números negativos y operar con ellos",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_ne_01a",
+          "titulo": "Recta Numérica",
+          "prerrequisitos": ["arit_nn_01a"],
+          "ejemplo": "Ubica -3, 0 y 5 en la recta numérica"
+        },
+        {
+          "id": "arit_ne_02a",
+          "titulo": "Suma de Enteros",
+          "prerrequisitos": ["arit_ne_01a", "arit_nn_02a"],
+          "ejemplo": "Calcula (-8) + 5"
+        },
+        {
+          "id": "arit_ne_02b",
+          "titulo": "Resta de Enteros",
+          "prerrequisitos": ["arit_ne_02a"],
+          "ejemplo": "Calcula 3 - (-7)"
+        }
+      ]
+    },
+    {
+      "id": "arit_di",
+      "titulo": "Divisibilidad",
+      "descripcion": "Identificar múltiplos, divisores y aplicar criterios de divisibilidad",
+      "dificultad": 1,
+      "subtemas": [
+        {
+          "id": "arit_di_01a",
+          "titulo": "Múltiplos y Divisores",
+          "prerrequisitos": ["arit_nn_02a"],
+          "ejemplo": "¿Es 24 múltiplo de 6?"
+        },
+        {
+          "id": "arit_di_01b",
+          "titulo": "Criterios de Divisibilidad",
+          "prerrequisitos": ["arit_di_01a"],
+          "ejemplo": "¿Es 135 divisible por 3?"
+        },
+        {
+          "id": "arit_di_02a",
+          "titulo": "Números Primos y Compuestos",
+          "prerrequisitos": ["arit_di_01a"],
+          "ejemplo": "¿Es 17 un número primo?"
+        }
+      ]
+    },
+    {
+      "id": "arit_fr",
+      "titulo": "Fracciones",
+      "descripcion": "Comprender, representar y operar con fracciones",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_fr_01a",
+          "titulo": "Concepto de Fracción",
+          "prerrequisitos": ["arit_di_01a"],
+          "ejemplo": "¿Qué fracción representa la parte sombreada?"
+        },
+        {
+          "id": "arit_fr_01b",
+          "titulo": "Fracciones Equivalentes",
+          "prerrequisitos": ["arit_fr_01a"],
+          "ejemplo": "Encuentra una fracción equivalente a 2/3"
+        },
+        {
+          "id": "arit_fr_02a",
+          "titulo": "Suma y Resta de Fracciones",
+          "prerrequisitos": ["arit_fr_01b"],
+          "ejemplo": "Calcula 3/4 + 1/2"
+        },
+        {
+          "id": "arit_fr_02b",
+          "titulo": "Multiplicación de Fracciones",
+          "prerrequisitos": ["arit_fr_01b"],
+          "ejemplo": "Calcula 2/3 × 5/4"
+        }
+      ]
+    },
+    {
+      "id": "arit_de",
+      "titulo": "Decimales",
+      "descripcion": "Operar con números decimales y convertirlos a fracciones",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_de_01a",
+          "titulo": "Lectura y Escritura de Decimales",
+          "prerrequisitos": ["arit_nn_01a"],
+          "ejemplo": "Escribe 3.25 en palabras"
+        },
+        {
+          "id": "arit_de_02a",
+          "titulo": "Suma y Resta de Decimales",
+          "prerrequisitos": ["arit_de_01a"],
+          "ejemplo": "Calcula 12.5 + 3.75"
+        },
+        {
+          "id": "arit_de_02b",
+          "titulo": "Multiplicación de Decimales",
+          "prerrequisitos": ["arit_de_02a"],
+          "ejemplo": "Calcula 3.2 × 1.5"
+        }
+      ]
+    },
+    {
+      "id": "arit_rp",
+      "titulo": "Razones y Proporciones",
+      "descripcion": "Comprender y aplicar razones y proporciones en situaciones reales",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_rp_01a",
+          "titulo": "Razón entre dos Cantidades",
+          "prerrequisitos": ["arit_fr_01a"],
+          "ejemplo": "En un aula hay 12 niños y 8 niñas. ¿Cuál es la razón niños:niñas?"
+        },
+        {
+          "id": "arit_rp_01b",
+          "titulo": "Proporciones Directas",
+          "prerrequisitos": ["arit_rp_01a"],
+          "ejemplo": "Si 3 lápices cuestan S/6, ¿cuánto cuestan 8 lápices?"
+        },
+        {
+          "id": "arit_rp_02a",
+          "titulo": "Proporciones Inversas",
+          "prerrequisitos": ["arit_rp_01b"],
+          "ejemplo": "Si 4 obreros tardan 6 días, ¿cuánto tardan 8 obreros?"
+        }
+      ]
+    },
+    {
+      "id": "arit_po",
+      "titulo": "Porcentajes",
+      "descripcion": "Calcular y aplicar porcentajes en contextos comerciales y cotidianos",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_po_01a",
+          "titulo": "Concepto de Porcentaje",
+          "prerrequisitos": ["arit_fr_01b", "arit_de_01a"],
+          "ejemplo": "¿Qué porcentaje es 25 de 100?"
+        },
+        {
+          "id": "arit_po_01b",
+          "titulo": "Cálculo de Porcentajes",
+          "prerrequisitos": ["arit_po_01a"],
+          "ejemplo": "Calcula el 15% de S/200"
+        }
+      ]
+    },
+    {
+      "id": "arit_rt",
+      "titulo": "Regla de Tres",
+      "descripcion": "Resolver problemas de proporcionalidad con regla de tres simple",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_rt_01a",
+          "titulo": "Regla de Tres Simple Directa",
+          "prerrequisitos": ["arit_rp_01b"],
+          "ejemplo": "Si 5 kg de arroz cuestan S/20, ¿cuánto cuestan 8 kg?"
+        },
+        {
+          "id": "arit_rt_02a",
+          "titulo": "Regla de Tres Simple Inversa",
+          "prerrequisitos": ["arit_rt_01a", "arit_rp_02a"],
+          "ejemplo": "Si 6 pintores tardan 10 días, ¿cuánto tardan 4 pintores?"
+        },
+        {
+          "id": "arit_rt_03a",
+          "titulo": "Aplicaciones Cotidianas",
+          "prerrequisitos": ["arit_rt_02a"],
+          "ejemplo": "Problemas combinados de compras, recetas y construcción"
+        }
+      ]
+    },
+    {
+      "id": "arit_cj",
+      "titulo": "Conjuntos",
+      "descripcion": "Comprender la teoría básica de conjuntos y sus operaciones",
+      "dificultad": 1,
+      "subtemas": [
+        {
+          "id": "arit_cj_01a",
+          "titulo": "Determinación de Conjuntos",
+          "prerrequisitos": [],
+          "ejemplo": "Determina por extensión: A = {x | x es dígito par}"
+        },
+        {
+          "id": "arit_cj_02a",
+          "titulo": "Unión e Intersección",
+          "prerrequisitos": ["arit_cj_01a"],
+          "ejemplo": "Dados A={1,2,3} y B={2,3,4}, halla A∪B y A∩B"
+        }
+      ]
+    },
+    {
+      "id": "arit_oc",
+      "titulo": "Operaciones Combinadas",
+      "descripcion": "Resolver expresiones con múltiples operaciones respetando la jerarquía",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_oc_01a",
+          "titulo": "Jerarquía de Operaciones",
+          "prerrequisitos": ["arit_nn_02a", "arit_nn_02b"],
+          "ejemplo": "Resuelve 3 + 5 × 2"
+        },
+        {
+          "id": "arit_oc_01b",
+          "titulo": "Operaciones con Paréntesis",
+          "prerrequisitos": ["arit_oc_01a"],
+          "ejemplo": "Resuelve (8 + 4) ÷ 3 × 2"
+        },
+        {
+          "id": "arit_oc_02a",
+          "titulo": "Problemas con Varias Operaciones",
+          "prerrequisitos": ["arit_oc_01b"],
+          "ejemplo": "Juan compró 3 cuadernos a S/5 cada uno. Pagó con S/20. ¿Cuánto recibió de vuelto?"
+        }
+      ]
+    },
+    {
+      "id": "arit_pt",
+      "titulo": "Potenciación",
+      "descripcion": "Comprender y calcular potencias con exponentes naturales",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_pt_01a",
+          "titulo": "Concepto de Potencia",
+          "prerrequisitos": ["arit_nn_02a"],
+          "ejemplo": "Calcula 2³"
+        },
+        {
+          "id": "arit_pt_01b",
+          "titulo": "Propiedades de Potencias",
+          "prerrequisitos": ["arit_pt_01a"],
+          "ejemplo": "Simplifica 2³ × 2²"
+        },
+        {
+          "id": "arit_pt_02a",
+          "titulo": "Potencias de Base 10",
+          "prerrequisitos": ["arit_pt_01a"],
+          "ejemplo": "Escribe 10⁵ como número natural"
+        }
+      ]
+    },
+    {
+      "id": "arit_ra",
+      "titulo": "Radicación",
+      "descripcion": "Comprender el concepto de raíz cuadrada y cúbica exacta",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_ra_01a",
+          "titulo": "Raíz Cuadrada Exacta",
+          "prerrequisitos": ["arit_pt_01a"],
+          "ejemplo": "Calcula √64"
+        },
+        {
+          "id": "arit_ra_01b",
+          "titulo": "Raíz Cúbica Exacta",
+          "prerrequisitos": ["arit_ra_01a"],
+          "ejemplo": "Calcula ³√27"
+        }
+      ]
+    },
+    {
+      "id": "arit_mm",
+      "titulo": "MCD y MCM",
+      "descripcion": "Calcular Máximo Común Divisor y Mínimo Común Múltiplo",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_mm_01a",
+          "titulo": "Descomposición en Factores Primos",
+          "prerrequisitos": ["arit_di_02a", "arit_pt_01a"],
+          "ejemplo": "Descompón 60 en factores primos"
+        },
+        {
+          "id": "arit_mm_02a",
+          "titulo": "Máximo Común Divisor (MCD)",
+          "prerrequisitos": ["arit_mm_01a"],
+          "ejemplo": "Calcula el MCD de 24 y 36"
+        },
+        {
+          "id": "arit_mm_02b",
+          "titulo": "Mínimo Común Múltiplo (MCM)",
+          "prerrequisitos": ["arit_mm_01a"],
+          "ejemplo": "Calcula el MCM de 8 y 12"
+        }
+      ]
+    },
+    {
+      "id": "arit_pr",
+      "titulo": "Números Primos",
+      "descripcion": "Identificar y trabajar con números primos",
+      "dificultad": 2,
+      "subtemas": [
+        {
+          "id": "arit_pr_01a",
+          "titulo": "Criba de Eratóstenes",
+          "prerrequisitos": ["arit_di_02a"],
+          "ejemplo": "Encuentra todos los primos hasta 30"
+        },
+        {
+          "id": "arit_pr_01b",
+          "titulo": "Factorización Prima",
+          "prerrequisitos": ["arit_pr_01a"],
+          "ejemplo": "Factoriza 84 como producto de primos"
+        }
+      ]
+    },
+    {
+      "id": "arit_es",
+      "titulo": "Estadística Básica",
+      "descripcion": "Recolectar, organizar e interpretar datos estadísticos",
+      "dificultad": 1,
+      "subtemas": [
+        {
+          "id": "arit_es_01a",
+          "titulo": "Tablas de Frecuencia",
+          "prerrequisitos": ["arit_nn_02a"],
+          "ejemplo": "Organiza en una tabla las edades: 12, 13, 12, 14, 13"
+        },
+        {
+          "id": "arit_es_01b",
+          "titulo": "Gráficos de Barras",
+          "prerrequisitos": ["arit_es_01a"],
+          "ejemplo": "Representa en un gráfico la tabla de frecuencias"
+        },
+        {
+          "id": "arit_es_02a",
+          "titulo": "Media Aritmética",
+          "prerrequisitos": ["arit_es_01a"],
+          "ejemplo": "Calcula el promedio de: 12, 15, 10, 13, 15"
+        }
+      ]
+    }
+  ]
+}

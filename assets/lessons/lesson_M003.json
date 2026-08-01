@@ -1,0 +1,99 @@
+{
+  "id": "M003",
+  "materia": "matematicas",
+  "titulo": "Porcentajes",
+  "nivelDificultad": 3,
+  "prerequisitos": ["M001", "M002"],
+  "videoPath": null,
+  "explicacion": {
+    "resumen": "El porcentaje es una forma de expresar una proporcion usando el numero 100 como referencia. Aprenderas a calcular porcentajes, convertir entre fracciones y porcentajes, y aplicar descuentos y aumentos.",
+    "pasos": [
+      {
+        "titulo": "Que es un porcentaje",
+        "contenido": "Porcentaje significa 'por cada cien'. El simbolo % representa una fraccion con denominador 100. Por ejemplo, 25% significa 25 de cada 100, es decir, la fraccion 25/100 que se simplifica a 1/4."
+      },
+      {
+        "titulo": "Calcular el porcentaje de una cantidad",
+        "contenido": "Para calcular el X% de una cantidad, multiplica la cantidad por X y divide entre 100. Ejemplo: el 30% de 200 es (30 x 200) / 100 = 6000 / 100 = 60. O tambien: 200 x 0.30 = 60."
+      },
+      {
+        "titulo": "Convertir entre fracciones y porcentajes",
+        "contenido": "Para convertir una fraccion a porcentaje, dividela y multiplica por 100. Ejemplo: 3/5 = 0.6, luego 0.6 x 100 = 60%. Para convertir un porcentaje a fraccion, escribe el numero sobre 100 y simplifica. Ejemplo: 40% = 40/100 = 2/5."
+      },
+      {
+        "titulo": "Descuentos y aumentos",
+        "contenido": "Para aplicar un descuento del X%, calcula el X% de la cantidad original y restalo. Para un aumento, suma el porcentaje calculado. Ejemplo: un producto de S/ 80 con 25% de descuento: descuento = 25% de 80 = 20, precio final = 80 - 20 = S/ 60."
+      },
+      {
+        "titulo": "Porcentajes en situaciones reales",
+        "contenido": "En el Peru, el IGV es el 18% del precio de venta. Si un articulo cuesta S/ 100 sin IGV, el precio final es S/ 118. Tambien usamos porcentajes para entender resultados: si 15 de 25 estudiantes aprobaron, el porcentaje de aprobados es (15/25) x 100 = 60%."
+      }
+    ],
+    "ejemploResuelto": {
+      "enunciado": "En una tienda, una mochila cuesta S/ 120. Durante una oferta, tiene un descuento del 30%. Cuanto se paga por la mochila?",
+      "solucion": "Paso 1: calculamos el descuento. 30% de 120 = (30 x 120) / 100 = 3600 / 100 = S/ 36. Paso 2: restamos el descuento del precio original. Precio final = 120 - 36 = S/ 84. Tambien podemos calcular directamente: si hay 30% de descuento, pagamos el 70%. 70% de 120 = 0.70 x 120 = S/ 84."
+    }
+  },
+  "ejercicios": [
+    {
+      "id": "M003_E01",
+      "tipo": "opcion_multiple",
+      "enunciado": "Calcula el 20% de 150.",
+      "opciones": ["30", "20", "75", "130"],
+      "respuestaCorrecta": "30",
+      "erroresComunes": ["20", "75"],
+      "feedbackPorError": {
+        "20": "Recuerda: para calcular el porcentaje, multiplica 150 por 20 y divide entre 100: (150 x 20) / 100 = 3000 / 100 = 30.",
+        "75": "75 es el 50% de 150. El ejercicio pide el 20%. Calcula (150 x 20) / 100 = 30."
+      }
+    },
+    {
+      "id": "M003_E02",
+      "tipo": "opcion_multiple",
+      "enunciado": "Un agricultor cosecho 200 kilos de papa y vendio el 35%. Cuantos kilos vendio?",
+      "opciones": ["70 kilos", "35 kilos", "65 kilos", "165 kilos"],
+      "respuestaCorrecta": "70 kilos",
+      "erroresComunes": ["35 kilos", "65 kilos"],
+      "feedbackPorError": {
+        "35 kilos": "Cuidado: 35% no significa 35 kilos. Calcula (200 x 35) / 100 = 7000 / 100 = 70 kilos.",
+        "65 kilos": "65% es el porcentaje que NO vendio (100% - 35%). El ejercicio pregunta cuanto vendio: 35% de 200 = 70 kilos."
+      }
+    },
+    {
+      "id": "M003_E03",
+      "tipo": "verdadero_falso",
+      "enunciado": "El 50% de una cantidad es lo mismo que la mitad de esa cantidad.",
+      "opciones": ["Verdadero", "Falso"],
+      "respuestaCorrecta": "Verdadero",
+      "erroresComunes": ["Falso"],
+      "feedbackPorError": {
+        "Falso": "50% significa 50 de cada 100, que es la fraccion 50/100 = 1/2. La mitad de algo es lo mismo que el 50%. Por ejemplo, el 50% de 80 es 40, y la mitad de 80 tambien es 40."
+      }
+    },
+    {
+      "id": "M003_E04",
+      "tipo": "opcion_multiple",
+      "enunciado": "Una camiseta cuesta S/ 60 y tiene un descuento del 15%. Cual es el precio final?",
+      "opciones": ["S/ 51", "S/ 45", "S/ 9", "S/ 75"],
+      "respuestaCorrecta": "S/ 51",
+      "erroresComunes": ["S/ 45", "S/ 9"],
+      "feedbackPorError": {
+        "S/ 45": "Calculaste 25% de descuento, pero el descuento es 15%. El 15% de 60 es (60 x 15)/100 = 9. Precio final: 60 - 9 = S/ 51.",
+        "S/ 9": "S/ 9 es el monto del descuento, no el precio final. Debes restar el descuento del precio original: 60 - 9 = S/ 51."
+      }
+    },
+    {
+      "id": "M003_E05",
+      "tipo": "respuesta_corta",
+      "enunciado": "De 40 estudiantes, 32 aprobaron el examen. Que porcentaje de estudiantes aprobo? (Escribe solo el numero, sin el simbolo %)",
+      "opciones": [],
+      "respuestaCorrecta": "80",
+      "erroresComunes": ["32", "20", "0.8"],
+      "feedbackPorError": {
+        "32": "32 es la cantidad de estudiantes, no el porcentaje. Para obtener el porcentaje: (32/40) x 100 = 0.8 x 100 = 80%.",
+        "20": "20% seria la respuesta si 8 estudiantes hubieran aprobado. Recuerda: (32/40) x 100 = 80%.",
+        "0.8": "0.8 es el resultado en forma decimal. Multiplica por 100 para obtener el porcentaje: 0.8 x 100 = 80%."
+      }
+    }
+  ]
+}

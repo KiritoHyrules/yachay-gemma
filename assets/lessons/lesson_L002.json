@@ -1,0 +1,94 @@
+{
+  "id": "L002",
+  "materia": "lectura",
+  "titulo": "Inferencias",
+  "nivelDificultad": 3,
+  "prerequisitos": ["L001"],
+  "videoPath": null,
+  "explicacion": {
+    "resumen": "Inferir es deducir informacion que no esta escrita directamente en el texto, usando pistas y nuestro conocimiento previo. Aprenderas a hacer inferencias logicas basadas en la evidencia del texto.",
+    "pasos": [
+      {
+        "titulo": "Que es una inferencia",
+        "contenido": "Una inferencia es una conclusion que obtienes combinando la informacion del texto con lo que ya sabes. No esta escrita directamente, pero puedes deducirla. Por ejemplo, si un texto dice 'Juan llego empapado', puedes inferir que esta lloviendo, aunque el texto no lo diga explicitamente."
+      },
+      {
+        "titulo": "Buscar pistas en el texto",
+        "contenido": "Para hacer una inferencia, identifica las pistas que el autor dejo. Palabras como 'sin embargo', 'por eso', 'entonces', y descripciones de acciones, emociones o situaciones te ayudan a deducir lo que no se dice directamente."
+      },
+      {
+        "titulo": "Usar tu conocimiento previo",
+        "contenido": "Tus experiencias y lo que sabes del mundo te ayudan a inferir. Si lees 'Maria se puso el abrigo y la bufanda', tu conocimiento te dice que hace frio. La inferencia debe ser logica y basarse en la evidencia del texto, no en suposiciones sin fundamento."
+      },
+      {
+        "titulo": "Diferencia entre hecho e inferencia",
+        "contenido": "Un hecho esta escrito directamente en el texto. Una inferencia es una deduccion. Por ejemplo, si el texto dice 'Pedro tiene un termometro en la boca', el hecho es que tiene un termometro. La inferencia podria ser que Pedro esta enfermo o que le estan tomando la temperatura. Varias inferencias pueden ser validas si se apoyan en el texto."
+      }
+    ],
+    "ejemploResuelto": {
+      "enunciado": "Lee el texto: 'Ana abrio la puerta del horno. Un aroma dulce invadio la cocina. Se puso los guantes de cocina y saco la bandeja con cuidado. En la mesa habia un plato con fresas y crema batida.' Que podemos inferir que estaba haciendo Ana?",
+      "solucion": "Las pistas son: abrir el horno, aroma dulce, usar guantes de cocina, sacar una bandeja, y tener fresas y crema en la mesa. Combinando estas pistas con nuestro conocimiento, podemos inferir que Ana estaba horneando un pastel o un postre. La inferencia se apoya en la evidencia del texto."
+    }
+  },
+  "ejercicios": [
+    {
+      "id": "L002_E01",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'Miguel miro el cielo. Las nubes estaban grises y gruesas. Busco su paraguas en el armario antes de salir.' Que puedes inferir?",
+      "opciones": ["Va a llover", "Hace mucho calor", "Miguel va a la playa", "Miguel perdio su paraguas"],
+      "respuestaCorrecta": "Va a llover",
+      "erroresComunes": ["Hace mucho calor", "Miguel va a la playa"],
+      "feedbackPorError": {
+        "Hace mucho calor": "Las nubes grises y gruesas son pista de lluvia, no de calor. Ademas, Miguel busca un paraguas, que se usa para protegerse de la lluvia, no del calor.",
+        "Miguel va a la playa": "No hay pistas sobre la playa en el texto. Miguel busca un paraguas y hay nubes grises. Estas pistas sugieren lluvia, no un paseo a la playa."
+      }
+    },
+    {
+      "id": "L002_E02",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'Cuando entro al aula, todos sus companeros gritaron: Sorpresa! Las mesas estaban llenas de globos y habia una torta con velas.' Que puedes inferir sobre lo que ocurre?",
+      "opciones": ["Es un cumpleanos sorpresa", "Es un dia normal de clases", "Es un examen", "Es una reunion de padres"],
+      "respuestaCorrecta": "Es un cumpleanos sorpresa",
+      "erroresComunes": ["Es un dia normal de clases", "Es un examen"],
+      "feedbackPorError": {
+        "Es un dia normal de clases": "Las pistas indican algo especial: gritaron 'sorpresa', hay globos y una torta con velas. Ninguna de estas senales es tipica de un dia normal de clases.",
+        "Es un examen": "No hay pistas sobre examenes. Los globos, la torta con velas y el grito de 'sorpresa' son indicios claros de una celebracion, probablemente de cumpleanos."
+      }
+    },
+    {
+      "id": "L002_E03",
+      "tipo": "verdadero_falso",
+      "enunciado": "Lee el texto: 'Las hojas del cuaderno de Carlos estaban en blanco y su lapiz sin punta. El profesor explico el tema por tercera vez, pero Carlos miraba hacia la ventana.' Se puede inferir que Carlos no estaba prestando atencion en clase.",
+      "opciones": ["Verdadero", "Falso"],
+      "respuestaCorrecta": "Verdadero",
+      "erroresComunes": ["Falso"],
+      "feedbackPorError": {
+        "Falso": "Las pistas son claras: el cuaderno esta en blanco (no escribio nada), el lapiz sin punta (no lo uso), el profesor repitio tres veces (el tema requeria explicacion adicional) y Carlos miraba por la ventana (distraido). La inferencia de que no prestaba atencion es valida."
+      }
+    },
+    {
+      "id": "L002_E04",
+      "tipo": "respuesta_corta",
+      "enunciado": "Lee el texto: 'El semaforo cambio a rojo pero el auto acelero y siguio de largo. Se escucho un fuerte frenazo y luego un golpe metalico.' Que podemos inferir que ocurrio? (Responde en una frase corta)",
+      "opciones": [],
+      "respuestaCorrecta": "un accidente de transito",
+      "erroresComunes": ["que el auto se detuvo", "que el semaforo se malogro"],
+      "feedbackPorError": {
+        "que el auto se detuvo": "El texto dice que el auto 'acelero y siguio de largo' cuando el semaforo estaba en rojo. No se detuvo. El frenazo y el golpe metalico sugieren una colision.",
+        "que el semaforo se malogro": "El texto no da pistas de que el semaforo este malogrado. Dice que cambio a rojo normalmente. La secuencia de eventos (no detenerse, frenazo, golpe) sugiere un accidente."
+      }
+    },
+    {
+      "id": "L002_E05",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'Luisa guardo su cuaderno de Matematicas en la mochila. Luego puso dos manzanas, un sandwich y una botella de agua.' Que puedes inferir sobre lo que Luisa va a hacer?",
+      "opciones": ["Va a estudiar ingles", "Se prepara para ir al colegio", "Va a cocinar", "Va a jugar futbol"],
+      "respuestaCorrecta": "Se prepara para ir al colegio",
+      "erroresComunes": ["Va a cocinar", "Va a jugar futbol"],
+      "feedbackPorError": {
+        "Va a cocinar": "Luisa guarda comida ya preparada (manzanas, sandwich), no ingredientes para cocinar. Ademas, tambien guarda un cuaderno de Matematicas, lo que sugiere que va a estudiar, no a cocinar.",
+        "Va a jugar futbol": "No hay pistas sobre deportes. Lleva un cuaderno de Matematicas, comida y agua. Esto es tipico de alguien que se prepara para ir al colegio."
+      }
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+# openspec/config.yaml — Aprendo+ (Ollama gemma)
+schema: spec-driven
+
+context: |
+  Project: Aprendo+ — on-device AI tutor for Peruvian secondary students
+  Hackathon: AI Competition Gemma 2026 (Aug 1-2, 5-7h window)
+  Stack: Flutter (Dart) 3.x, provider, sqflite + SQLCipher (AES-256), Gemma 4 E2B QAT Mobile (GGUF Q4_0)
+  Backend: Firebase Firestore + Cloud Run (Python/Node.js), Native bridge: Kotlin (MethodChannel)
+  Platform: Android 6+ APK, 2GB RAM minimum, offline-first
+  Architecture: C4 Model, monolithic modular Flutter app, ISO 15288 traceable
+  Docs: IDEA E INVSTIGAION PARA EL PROYECTO/ (5 docs: 6.4.1–6.4.5)
+  No source code yet — pre-implementation phase
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Link to SYRS requirement IDs (SR-A01, SR-B07, etc.) from ISO 15288 docs
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference stakeholder needs (N-01 to N-20) from 6.4.2
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale (ADR format per 6.4.4)
+    - Respect system boundaries from 6.4.3 (offline-first, no teacher ranking)
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session (hackathon time constraint)
+    - Mark Flutter-widget tasks with [UI], DB tasks with [DB], AI tasks with [AI]
+  apply:
+    guidelines:
+      - Follow existing code patterns (provider state, sqflite repos, MethodChannel bridge)
+      - Respect offline-first constraint — never assume network
+      - Keep APK under 50MB target (model is external asset)
+    tdd: true
+    test_command: "flutter test"
+  verify:
+    test_command: "flutter test"
+    build_command: "flutter build apk --debug"
+    coverage_threshold: 60
+  archive:
+    - Warn before merging destructive deltas
+
+strict_tdd: true
+
+testing:
+  strict_tdd: true
+  detected: "2026-07-30"
+  activated: "2026-07-30"
+  runner:
+    available: true
+    command: "flutter test"
+    framework: flutter_test
+  layers:
+    unit: {available: false, tool: null}
+    integration: {available: false, tool: null}
+    e2e: {available: false, tool: null}
+  coverage:
+    available: false
+    command: null
+  quality:
+    linter: {available: false, command: null}
+    type_checker: {available: false, command: null}
+    formatter: {available: false, command: null}

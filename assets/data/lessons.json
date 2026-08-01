@@ -1,0 +1,92 @@
+[
+  {
+    "id": "lec_mate_01",
+    "subject": "matematicas",
+    "title": "Fracciones",
+    "difficulty_level": 1,
+    "video_path": null,
+    "explanation_json": "{\"paso_1\": \"Las fracciones representan partes de un todo.\"}",
+    "exercises": [
+      {
+        "id": "ej_fracc_01",
+        "type": "opcion_multiple",
+        "enunciado": "Cuanto es 1/2 + 1/4?",
+        "opciones": ["2/6", "3/4", "2/4", "1/6"],
+        "respuesta_correcta": "3/4"
+      }
+    ],
+    "prerequisites": []
+  },
+  {
+    "id": "lec_mate_02",
+    "subject": "matematicas",
+    "title": "Ecuaciones lineales",
+    "difficulty_level": 2,
+    "video_path": null,
+    "explanation_json": "{\"paso_1\": \"Una ecuacion lineal tiene la forma ax + b = c.\"}",
+    "exercises": [
+      {
+        "id": "ej_ecu_01",
+        "type": "opcion_multiple",
+        "enunciado": "Resuelve: 2x + 3 = 7",
+        "opciones": ["x = 1", "x = 2", "x = 3", "x = 4"],
+        "respuesta_correcta": "x = 2"
+      }
+    ],
+    "prerequisites": ["lec_mate_01"]
+  },
+  {
+    "id": "lec_mate_03",
+    "subject": "matematicas",
+    "title": "Porcentajes",
+    "difficulty_level": 2,
+    "video_path": null,
+    "explanation_json": "{\"paso_1\": \"El porcentaje es una forma de expresar una proporcion.\"}",
+    "exercises": [
+      {
+        "id": "ej_porc_01",
+        "type": "opcion_multiple",
+        "enunciado": "Cuanto es el 25% de 200?",
+        "opciones": ["25", "50", "75", "100"],
+        "respuesta_correcta": "50"
+      }
+    ],
+    "prerequisites": ["lec_mate_01"]
+  },
+  {
+    "id": "lec_lect_01",
+    "subject": "lectura",
+    "title": "Comprension lectora",
+    "difficulty_level": 1,
+    "video_path": null,
+    "explanation_json": "{\"paso_1\": \"Leer con atencion es el primer paso para comprender.\"}",
+    "exercises": [
+      {
+        "id": "ej_comp_01",
+        "type": "verdadero_falso",
+        "enunciado": "La idea principal de un texto siempre esta en el primer parrafo.",
+        "opciones": ["Verdadero", "Falso"],
+        "respuesta_correcta": "Falso"
+      }
+    ],
+    "prerequisites": []
+  },
+  {
+    "id": "lec_lect_02",
+    "subject": "lectura",
+    "title": "Inferencias",
+    "difficulty_level": 2,
+    "video_path": null,
+    "explanation_json": "{\"paso_1\": \"Inferir es deducir informacion que no esta escrita explicitamente.\"}",
+    "exercises": [
+      {
+        "id": "ej_inf_01",
+        "type": "opcion_multiple",
+        "enunciado": "Maria llevo paraguas al salir. Que puedes inferir?",
+        "opciones": ["Hacia sol", "Probablemente iba a llover", "Iba a la playa", "Era de noche"],
+        "respuesta_correcta": "Probablemente iba a llover"
+      }
+    ],
+    "prerequisites": ["lec_lect_01"]
+  }
+]

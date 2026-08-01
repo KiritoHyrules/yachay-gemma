@@ -1,0 +1,82 @@
+[
+  {
+    "id": "item_01",
+    "area": "matematicas",
+    "dificultad": 1,
+    "enunciado": "Cuanto es 15 + 27?",
+    "opciones": ["32", "42", "52", "38"],
+    "respuesta_correcta": "42"
+  },
+  {
+    "id": "item_02",
+    "area": "matematicas",
+    "dificultad": 1,
+    "enunciado": "Cual es el resultado de 8 x 7?",
+    "opciones": ["54", "56", "64", "48"],
+    "respuesta_correcta": "56"
+  },
+  {
+    "id": "item_03",
+    "area": "matematicas",
+    "dificultad": 1,
+    "enunciado": "Que numero sigue en la secuencia: 2, 4, 6, 8, __?",
+    "opciones": ["9", "10", "12", "11"],
+    "respuesta_correcta": "10"
+  },
+  {
+    "id": "item_04",
+    "area": "matematicas",
+    "dificultad": 2,
+    "enunciado": "Resuelve: 3x - 7 = 14. Cual es el valor de x?",
+    "opciones": ["3", "5", "7", "9"],
+    "respuesta_correcta": "7"
+  },
+  {
+    "id": "item_05",
+    "area": "matematicas",
+    "dificultad": 2,
+    "enunciado": "Cual es el area de un rectangulo de 5m de base y 3m de altura?",
+    "opciones": ["8 m2", "15 m2", "16 m2", "10 m2"],
+    "respuesta_correcta": "15 m2"
+  },
+  {
+    "id": "item_06",
+    "area": "lectura",
+    "dificultad": 1,
+    "enunciado": "Lee: 'El gato negro saltaba sobre el tejado rojo.' De que color era el gato?",
+    "opciones": ["Blanco", "Negro", "Rojo", "Gris"],
+    "respuesta_correcta": "Negro"
+  },
+  {
+    "id": "item_07",
+    "area": "lectura",
+    "dificultad": 1,
+    "enunciado": "Cual es el antonimo de 'grande'?",
+    "opciones": ["Alto", "Pequeno", "Ancho", "Largo"],
+    "respuesta_correcta": "Pequeno"
+  },
+  {
+    "id": "item_08",
+    "area": "lectura",
+    "dificultad": 2,
+    "enunciado": "Lee: 'A pesar de la lluvia, Pedro decidio caminar al colegio.' Que caracteristica describe mejor a Pedro?",
+    "opciones": ["Perezoso", "Distraido", "Determinado", "Temeroso"],
+    "respuesta_correcta": "Determinado"
+  },
+  {
+    "id": "item_09",
+    "area": "matematicas",
+    "dificultad": 2,
+    "enunciado": "Si un pantalon cuesta S/.80 y tiene 20% de descuento, cuanto se paga?",
+    "opciones": ["S/.56", "S/.60", "S/.64", "S/.72"],
+    "respuesta_correcta": "S/.64"
+  },
+  {
+    "id": "item_10",
+    "area": "lectura",
+    "dificultad": 1,
+    "enunciado": "Cual de estas palabras es un sustantivo?",
+    "opciones": ["Correr", "Bonito", "Mesa", "Rapidamente"],
+    "respuesta_correcta": "Mesa"
+  }
+]

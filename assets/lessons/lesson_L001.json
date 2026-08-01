@@ -1,0 +1,94 @@
+{
+  "id": "L001",
+  "materia": "lectura",
+  "titulo": "Comprension literal",
+  "nivelDificultad": 1,
+  "prerequisitos": [],
+  "videoPath": null,
+  "explicacion": {
+    "resumen": "La comprension literal es la capacidad de identificar informacion que aparece directamente en el texto. Aprenderas a localizar datos, hechos, nombres, fechas y detalles especificos sin necesidad de interpretar.",
+    "pasos": [
+      {
+        "titulo": "Que es la comprension literal",
+        "contenido": "Es el primer nivel de lectura. Consiste en entender lo que el texto dice explicitamente: identificar personajes, lugares, fechas, acciones y secuencias de eventos. No requiere interpretar ni opinar, solo localizar la informacion que ya esta escrita."
+      },
+      {
+        "titulo": "Leer con atencion",
+        "contenido": "Antes de responder preguntas, lee el texto completo una vez para tener una idea general. Luego, en una segunda lectura, busca las partes que responden a las preguntas. Subraya o anota las ideas clave mientras lees."
+      },
+      {
+        "titulo": "Identificar datos especificos",
+        "contenido": "Las preguntas literales suelen empezar con: quien, que, cuando, donde, como, cuantos. Para responder, busca la palabra clave de la pregunta en el texto y lee la oracion completa donde aparece. La respuesta estara ahi."
+      },
+      {
+        "titulo": "Prestar atencion a los detalles",
+        "contenido": "A veces las respuestas estan en pequenos detalles: un numero, una fecha, un nombre. Lee cada oracion con cuidado. No asumas informacion que no esta en el texto. Si el texto no lo dice, no es la respuesta correcta."
+      }
+    ],
+    "ejemploResuelto": {
+      "enunciado": "Lee el siguiente texto: 'Maria salio de su casa a las 7 de la manana. Camino tres cuadras hasta la panaderia Don Jose, donde compro seis panes y un litro de leche. Pago en total ocho soles.' Pregunta: A que hora salio Maria de su casa?",
+      "solucion": "La respuesta esta en la primera oracion: 'Maria salio de su casa a las 7 de la manana'. No hay que interpretar nada, la informacion esta escrita directamente. Respuesta: A las 7 de la manana."
+    }
+  },
+  "ejercicios": [
+    {
+      "id": "L001_E01",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'El rio Amazonas nace en las montanas de los Andes, en el sur del Peru. Recorre mas de 6,400 kilometros antes de desembocar en el oceano Atlantico. Es el rio mas caudaloso del mundo.' Segun el texto, donde nace el rio Amazonas?",
+      "opciones": ["En Brasil", "En los Andes del sur del Peru", "En el oceano Atlantico", "En Colombia"],
+      "respuestaCorrecta": "En los Andes del sur del Peru",
+      "erroresComunes": ["En Brasil", "En el oceano Atlantico"],
+      "feedbackPorError": {
+        "En Brasil": "El texto dice que nace 'en las montanas de los Andes, en el sur del Peru', no en Brasil. Brasil es por donde pasa el Amazonas, pero no donde nace.",
+        "En el oceano Atlantico": "El oceano Atlantico es donde desemboca el rio, no donde nace. El texto dice claramente que nace en los Andes del sur del Peru."
+      }
+    },
+    {
+      "id": "L001_E02",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'Pedro tiene 15 anos y estudia en el colegio San Martin. Su materia favorita es Historia. Los martes y jueves practica futbol en el equipo del barrio.' Cuantos anos tiene Pedro?",
+      "opciones": ["14", "15", "16", "No se menciona"],
+      "respuestaCorrecta": "15",
+      "erroresComunes": ["14", "No se menciona"],
+      "feedbackPorError": {
+        "14": "El texto dice claramente en la primera oracion: 'Pedro tiene 15 anos'. La edad esta explicita en el texto.",
+        "No se menciona": "Si se menciona. La primera oracion dice: 'Pedro tiene 15 anos'. Solo debes localizar la informacion en el texto."
+      }
+    },
+    {
+      "id": "L001_E03",
+      "tipo": "verdadero_falso",
+      "enunciado": "Lee el texto: 'En la feria gastronomica Mistura participaron mas de 200 restaurantes de todo el Peru. El evento duro diez dias y recibio a 500,000 visitantes. El plato mas vendido fue el ceviche.' Segun el texto, el evento duro una semana.",
+      "opciones": ["Verdadero", "Falso"],
+      "respuestaCorrecta": "Falso",
+      "erroresComunes": ["Verdadero"],
+      "feedbackPorError": {
+        "Verdadero": "El texto dice que el evento 'duro diez dias', no una semana. Una semana son 7 dias. Debes leer con atencion los detalles exactos del texto."
+      }
+    },
+    {
+      "id": "L001_E04",
+      "tipo": "respuesta_corta",
+      "enunciado": "Lee el texto: 'La fiesta de cumpleanos de Lucia fue el sabado 15 de abril. Asistieron 12 amigos. Su tia le regalo una bicicleta azul y su abuela le dio un libro de aventuras.' Que le regalo su tia a Lucia?",
+      "opciones": [],
+      "respuestaCorrecta": "una bicicleta azul",
+      "erroresComunes": ["un libro de aventuras", "una bicicleta", "12 amigos"],
+      "feedbackPorError": {
+        "un libro de aventuras": "El texto dice que la abuela le regalo un libro. La tia le regalo 'una bicicleta azul'. Presta atencion a quien dio cada regalo.",
+        "12 amigos": "12 amigos es el numero de asistentes, no un regalo. El texto dice que la tia le regalo una bicicleta azul."
+      }
+    },
+    {
+      "id": "L001_E05",
+      "tipo": "opcion_multiple",
+      "enunciado": "Lee el texto: 'El viaje de Lima a Cusco en bus toma aproximadamente 22 horas. En avion, el mismo recorrido se hace en 1 hora y 15 minutos. El pasaje en bus cuesta 80 soles y en avion 250 soles.' Cuanto cuesta el pasaje en avion?",
+      "opciones": ["80 soles", "250 soles", "22 horas", "170 soles"],
+      "respuestaCorrecta": "250 soles",
+      "erroresComunes": ["80 soles", "170 soles"],
+      "feedbackPorError": {
+        "80 soles": "80 soles es el costo del pasaje en bus, no en avion. El texto dice que 'en avion 250 soles'.",
+        "170 soles": "170 no aparece en el texto. El texto dice que el pasaje en avion cuesta 250 soles. No sumes ni restes: la respuesta esta directamente en el texto."
+      }
+    }
+  ]
+}

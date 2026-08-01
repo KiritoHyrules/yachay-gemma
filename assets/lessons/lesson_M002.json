@@ -1,0 +1,94 @@
+{
+  "id": "M002",
+  "materia": "matematicas",
+  "titulo": "Ecuaciones basicas",
+  "nivelDificultad": 2,
+  "prerequisitos": ["M001"],
+  "videoPath": null,
+  "explicacion": {
+    "resumen": "Una ecuacion es una igualdad entre dos expresiones que contiene una incognita. Aprenderas a resolver ecuaciones de primer grado usando operaciones inversas para despejar la variable.",
+    "pasos": [
+      {
+        "titulo": "Que es una ecuacion",
+        "contenido": "Una ecuacion es como una balanza en equilibrio. Lo que esta a la izquierda del signo igual debe tener el mismo valor que lo que esta a la derecha. La incognita (generalmente x) es el valor que buscamos. Por ejemplo: 2x + 3 = 7."
+      },
+      {
+        "titulo": "Operaciones inversas",
+        "contenido": "Para despejar la x, aplicamos la operacion inversa. La suma se deshace con resta, la resta con suma, la multiplicacion con division y la division con multiplicacion. Siempre aplica la misma operacion a ambos lados de la ecuacion."
+      },
+      {
+        "titulo": "Resolver paso a paso",
+        "contenido": "Ejemplo: 2x + 3 = 7. Paso 1: restamos 3 a ambos lados: 2x + 3 - 3 = 7 - 3, queda 2x = 4. Paso 2: dividimos ambos lados entre 2: 2x/2 = 4/2, queda x = 2. Verificamos: 2(2) + 3 = 4 + 3 = 7. Correcto."
+      },
+      {
+        "titulo": "Ecuaciones con terminos en ambos lados",
+        "contenido": "Cuando hay x en ambos lados, primero agrupamos las x de un lado y los numeros del otro. Ejemplo: 3x - 2 = x + 6. Restamos x a ambos lados: 2x - 2 = 6. Sumamos 2: 2x = 8. Dividimos entre 2: x = 4."
+      }
+    ],
+    "ejemploResuelto": {
+      "enunciado": "Resuelve: 5x - 7 = 3x + 9",
+      "solucion": "Paso 1: restamos 3x a ambos lados: 5x - 3x - 7 = 3x - 3x + 9, queda 2x - 7 = 9. Paso 2: sumamos 7 a ambos lados: 2x - 7 + 7 = 9 + 7, queda 2x = 16. Paso 3: dividimos entre 2: x = 8. Verificacion: 5(8) - 7 = 40 - 7 = 33. 3(8) + 9 = 24 + 9 = 33. Correcto."
+    }
+  },
+  "ejercicios": [
+    {
+      "id": "M002_E01",
+      "tipo": "opcion_multiple",
+      "enunciado": "Resuelve: x + 5 = 12. Cual es el valor de x?",
+      "opciones": ["x = 7", "x = 17", "x = 5", "x = 6"],
+      "respuestaCorrecta": "x = 7",
+      "erroresComunes": ["x = 17", "x = 5"],
+      "feedbackPorError": {
+        "x = 17": "Cuidado: sumaste en lugar de restar. Para despejar x, debes hacer la operacion inversa: resta 5 a ambos lados. x + 5 - 5 = 12 - 5, entonces x = 7.",
+        "x = 5": "Recuerda que x + 5 = 12 significa que x mas 5 es igual a 12. Resta 5 a ambos lados: x = 12 - 5 = 7."
+      }
+    },
+    {
+      "id": "M002_E02",
+      "tipo": "opcion_multiple",
+      "enunciado": "Resuelve: 3x = 18. Cual es el valor de x?",
+      "opciones": ["x = 6", "x = 15", "x = 54", "x = 21"],
+      "respuestaCorrecta": "x = 6",
+      "erroresComunes": ["x = 15", "x = 54"],
+      "feedbackPorError": {
+        "x = 15": "3x significa 3 por x, no 3 mas x. Para despejar x, divide entre 3: 3x/3 = 18/3, entonces x = 6.",
+        "x = 54": "Multiplicaste en lugar de dividir. 3x = 18 se resuelve dividiendo ambos lados entre 3, no multiplicando."
+      }
+    },
+    {
+      "id": "M002_E03",
+      "tipo": "opcion_multiple",
+      "enunciado": "Resuelve: 2x + 4 = 14. Cual es el valor de x?",
+      "opciones": ["x = 5", "x = 9", "x = 7", "x = 10"],
+      "respuestaCorrecta": "x = 5",
+      "erroresComunes": ["x = 9", "x = 7"],
+      "feedbackPorError": {
+        "x = 9": "Primero resta 4 a ambos lados: 2x = 10. Luego divide entre 2: x = 5. Parece que restaste 4 de 14 pero olvidaste dividir entre 2.",
+        "x = 7": "Casi. Despues de restar 4: 2x = 10. Divide 10 entre 2 para obtener x = 5. No es x = 7."
+      }
+    },
+    {
+      "id": "M002_E04",
+      "tipo": "verdadero_falso",
+      "enunciado": "En la ecuacion 4x - 3 = 9, el valor de x es 3.",
+      "opciones": ["Verdadero", "Falso"],
+      "respuestaCorrecta": "Verdadero",
+      "erroresComunes": ["Falso"],
+      "feedbackPorError": {
+        "Falso": "Verifiquemos: suma 3 a ambos lados: 4x = 12. Divide entre 4: x = 3. Comprobacion: 4(3) - 3 = 12 - 3 = 9. Si, x = 3 es correcto."
+      }
+    },
+    {
+      "id": "M002_E05",
+      "tipo": "respuesta_corta",
+      "enunciado": "Resuelve: x/4 = 5. Escribe solo el valor de x (un numero).",
+      "opciones": [],
+      "respuestaCorrecta": "20",
+      "erroresComunes": ["1.25", "9"],
+      "feedbackPorError": {
+        "1.25": "Cuidado: x/4 = 5 significa que x dividido entre 4 es igual a 5. Para despejar x, multiplica ambos lados por 4: x = 5 x 4 = 20.",
+        "9": "Recuerda que x/4 es una division, no una suma. Multiplica 5 por 4 para obtener x = 20."
+      }
+    }
+  ]
+}
