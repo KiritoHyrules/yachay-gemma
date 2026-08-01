@@ -26,8 +26,8 @@ void main() {
     test(
         'GIVEN a fresh service with a fake adapter '
         'WHEN cargarModelo() succeeds '
-        'THEN loadModel(8192, cpu) and createChat(systemInstruction, '
-        'maxOutputTokens>=1024, 13 tools) were called', () async {
+        'THEN loadModel(256, cpu) and createChat(systemInstruction, '
+        'maxOutputTokens=256, tools=[]) were called', () async {
       final adapter = GemmaInferenceAdapterFake();
       final service = GemmaService.forTest(adapter: adapter);
 
@@ -36,22 +36,13 @@ void main() {
       expect(loaded, isTrue);
       expect(service.modeloCargado, isTrue);
       expect(adapter.loadModelCalls, 1);
-      expect(adapter.loadModelMaxTokens, greaterThanOrEqualTo(1024));
+      expect(adapter.loadModelMaxTokens, 256);
       expect(adapter.createChatCalls, 1);
       expect(adapter.systemInstruction, isNotNull);
       expect(adapter.systemInstruction, isNotEmpty);
       expect(adapter.systemInstruction, contains('Yachay'));
-      expect(adapter.maxOutputTokens, greaterThanOrEqualTo(1024));
-      expect(adapter.tools, isNotNull);
-      expect(adapter.tools!.length, 13);
-
-      final names = adapter.tools!.map((t) => t.name).toList();
-      expect(names, contains('explicar_tema'));
-      expect(names, contains('generar_ejercicios'));
-      expect(names, contains('evaluar_respuesta'));
-      expect(names, contains('consultar_estado'));
-      expect(names, contains('iniciar_conversacion'));
-      expect(names, contains('obtener_siguiente_tema'));
+      expect(adapter.maxOutputTokens, 256);
+      // Model on this device does not support function calling (plain-text mode).
 
       expect(service.activeBackend, PreferredBackend.cpu);
     });

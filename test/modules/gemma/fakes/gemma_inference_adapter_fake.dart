@@ -40,6 +40,10 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
   List<Tool>? tools;
   int? tokenBuffer;
   int? randomSeed;
+  double? temperature;
+  int? topK;
+  double? topP;
+  double? repeatPenalty;
   bool closed = false;
   bool historyCleared = false;
 
@@ -81,6 +85,10 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
     required String systemInstruction,
     required int maxOutputTokens,
     required List<Tool> tools,
+    double temperature = 0.4,
+    int topK = 64,
+    double topP = 0.85,
+    double repeatPenalty = 1.1,
     int tokenBuffer = 512,
     int randomSeed = 1,
   }) async {
@@ -88,6 +96,10 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
     this.systemInstruction = systemInstruction;
     this.maxOutputTokens = maxOutputTokens;
     this.tools = tools;
+    this.temperature = temperature;
+    this.topK = topK;
+    this.topP = topP;
+    this.repeatPenalty = repeatPenalty;
     this.tokenBuffer = tokenBuffer;
     this.randomSeed = randomSeed;
   }

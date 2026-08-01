@@ -31,10 +31,35 @@ Map<String, dynamic> _testFallbackData() {
       },
     },
 
-    // --- NEW: trivial greetings (Layer 1) ---
+    // --- NEW: trivial greetings (Layer 1) — plain-text patterns ---
     'trivial_greetings': [
       {
-        'regex': r'^(hola|holaa|holaaa|holi|hey|buenos días|buenas tardes|buenas noches|gracias|muchas gracias)[!.\s]*$',
+        'pattern': 'hola',
+        'response':
+            '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
+      },
+      {
+        'pattern': 'buenos días',
+        'response':
+            '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
+      },
+      {
+        'pattern': 'buenas tardes',
+        'response':
+            '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
+      },
+      {
+        'pattern': 'buenas noches',
+        'response':
+            '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
+      },
+      {
+        'pattern': 'gracias',
+        'response':
+            '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
+      },
+      {
+        'pattern': 'hey',
         'response':
             '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?',
       },

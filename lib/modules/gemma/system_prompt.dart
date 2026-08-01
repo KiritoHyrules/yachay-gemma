@@ -69,26 +69,16 @@ class SystemPrompt {
     );
     buffer.writeln();
 
-    // Tool list.
+    // Tool list — compact: name + one-line description only.
+    // The full Tool objects are passed to createChat() separately; repeating
+    // full param schemas here bloats the prompt and stalls CPU prefill.
     buffer.writeln('Herramientas:');
     buffer.writeln();
 
     for (final tool in tools) {
-      buffer.writeln('### ${tool.name}');
-      buffer.writeln(tool.description);
-
-      if (tool.params.isNotEmpty) {
-        buffer.writeln('Parámetros:');
-        for (final param in tool.params) {
-          final req = param.required ? ' (requerido)' : '';
-          final details = '  - ${param.name}: ${param.description}$req';
-          buffer.writeln(details);
-        }
-      }
-
-      buffer.writeln('Ejemplo: ${_usageForTool(tool.name, tool.params)}');
-      buffer.writeln();
+      buffer.writeln('- ${tool.name}: ${tool.description}');
     }
+    buffer.writeln();
 
     return buffer.toString();
   }
@@ -126,15 +116,15 @@ class SystemPrompt {
     );
     buffer.writeln();
 
-    // --- Socratic Rules ---
-    buffer.writeln('REGLAS DEL MÉTODO SOCRÁTICO');
-    buffer.writeln('===========================');
+    // --- Socratic Rules (compact) ---
+    buffer.writeln('REGLAS');
+    buffer.writeln('======');
     buffer.writeln('1. Preguntá, nunca respondás directamente.');
     buffer.writeln(
       '   Si preguntan "¿cuánto es 3/4 + 1/2?", respondé: '
       '"¿Qué necesitás para sumar fracciones con distinto denominador?"',
     );
-    buffer.writeln('2. Guiá con preguntas que lleven al estudiante a descubrir.');
+    buffer.writeln('2. Guiá con preguntas paso a paso.');
     buffer.writeln(
       '3. Si el estudiante se frustra, ofrecé apoyo emocional y reducí dificultad.',
     );
@@ -153,7 +143,7 @@ class SystemPrompt {
     );
     buffer.writeln();
 
-    // --- Tool Usage ---
+    // --- Tool Usage (compact) ---
     buffer.writeln('HERRAMIENTAS DISPONIBLES');
     buffer.writeln('======================');
     buffer.writeln(
@@ -164,40 +154,16 @@ class SystemPrompt {
     );
     buffer.writeln();
 
-    buffer.writeln('Reglas de herramientas:');
-    buffer.writeln(
-      '- Usá una herramienta solo cuando aporte datos o acciones al diálogo.',
-    );
-    buffer.writeln(
-      '- Tras obtener el resultado, usalo para guiar al estudiante con '
-      'una pregunta socrática.',
-    );
-    buffer.writeln(
-      '- Cuando tengas suficiente información, respondé al estudiante '
-      'sin usar más herramientas.',
-    );
-    buffer.writeln();
-
-    // --- Tool List ---
+    // Tool list — compact: name + one-line description only.
+    // The full Tool objects are passed to createChat() separately; repeating
+    // full param schemas here bloats the prompt and stalls CPU prefill.
     buffer.writeln('Herramientas:');
     buffer.writeln();
 
     for (final tool in tools) {
-      buffer.writeln('### ${tool.name}');
-      buffer.writeln(tool.description);
-
-      if (tool.params.isNotEmpty) {
-        buffer.writeln('Parámetros:');
-        for (final param in tool.params) {
-          final req = param.required ? ' (requerido)' : '';
-          final details = '  - ${param.name}: ${param.description}$req';
-          buffer.writeln(details);
-        }
-      }
-
-      buffer.writeln('Ejemplo: ${_usageForTool(tool.name, tool.params)}');
-      buffer.writeln();
+      buffer.writeln('- ${tool.name}: ${tool.description}');
     }
+    buffer.writeln();
 
     buffer.writeln(
       'Recordá: sos Yachay, un guía, no un solucionador. '

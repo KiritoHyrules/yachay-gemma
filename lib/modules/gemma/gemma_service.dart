@@ -97,7 +97,8 @@ class GemmaService {
   /// Creates a fresh GemmaService instance for testing.
   /// Production code MUST use [instance] instead.
   @visibleForTesting
-  GemmaService.forTest({GemmaInferenceAdapter? adapter, Duration? streamTimeout})
+  GemmaService.forTest(
+      {GemmaInferenceAdapter? adapter, Duration? streamTimeout})
       : this._internal(adapter: adapter, streamTimeout: streamTimeout);
 
   /// Resets all internal state. Only for testing — production code
@@ -206,7 +207,7 @@ class GemmaService {
     _inicializarRegistry();
 
     try {
-      final ok = await _adapter.loadModel(maxTokens: 8192);
+      final ok = await _adapter.loadModel(maxTokens: 512);
       if (!ok) {
         // No active model (first run / not installed): stay degraded. The
         // chip keeps its real state (`Sin modelo`) — never a false `Listo`.
@@ -215,9 +216,9 @@ class GemmaService {
       }
       try {
         await _adapter.createChat(
-          systemInstruction: _systemInstruction(),
+          systemInstruction: _yachaySystemPrompt(),
           maxOutputTokens: SamplingConfig.maxTokens,
-          tools: _registry.toFlutterGemmaTools(),
+          tools: const [],
         );
       } catch (e) {
         debugPrint('GemmaService: createChat failed — $e. Using fallback.');
@@ -293,55 +294,17 @@ class GemmaService {
     await _cargarFallback();
     _inicializarRegistry();
 
-    // ---- Model not loaded → FallbackDispatcher ----
     if (!_modeloCargado) {
       return _dispatchFallback(userMessage);
     }
 
-    // ---- Greeting → respond directly ----
     if (_esSaludo(userMessage)) {
       final saludo =
           await _registry.run('iniciar_conversacion', {}, _toolContext);
       return saludo.summary;
     }
 
-    try {
-      await _adapter.addQuery(Message.text(text: userMessage, isUser: true));
-
-      final buffer = StringBuffer();
-
-      for (var round = 1; round <= maxDispatchRounds; round++) {
-        final ronda = await _generarRonda();
-        if (ronda == null) {
-          // Empty round: the model produced nothing usable.
-          return _dispatchFallback(userMessage);
-        }
-
-        if (ronda.text != null) {
-          buffer.write(ronda.text);
-          return buffer.toString().trim();
-        }
-
-        // Tool round: execute every call and feed the result back.
-        for (final call in ronda.toolCalls!) {
-          final result =
-              await _registry.run(call.name, call.args, _toolContext);
-          buffer.write('${result.summary}\n');
-          await _adapter.addQuery(Message.toolResponse(
-            toolName: call.name,
-            response: {'summary': result.summary, 'payload': result.payload},
-          ));
-        }
-      }
-
-      // Round exhaustion: force a final text with the accumulated results.
-      final forced = buffer.toString().trim();
-      if (forced.isNotEmpty) return forced;
-      return _dispatchFallback(userMessage);
-    } catch (e) {
-      debugPrint('GemmaService: dispatch failed — $e. Using fallback.');
-      return _dispatchFallback(userMessage);
-    }
+    return _dispatchPlainText(userMessage);
   }
 
   /// Sends [prompt] to the Gemma model with token-level streaming.
@@ -375,10 +338,8 @@ class GemmaService {
     try {
       await _adapter.addQuery(Message.text(text: prompt, isUser: true));
 
-      await _adapter
-          .streamResponse()
-          .timeout(_streamTimeout)
-          .forEach((token) {
+      final stream = _adapter.streamResponse().timeout(_streamTimeout);
+      await for (final token in stream) {
         firstTokenTime ??= DateTime.now();
         tokenCount++;
         tokenBuffer.write(token);
@@ -391,7 +352,7 @@ class GemmaService {
           tokensSinceLastFlush = 0;
           onToken?.call(batch);
         }
-      });
+      }
     } on TimeoutException {
       debugPrint('GemmaService: stream timed out');
     } catch (e) {
@@ -531,29 +492,27 @@ class GemmaService {
     final buffer = StringBuffer();
     final toolCalls = <FunctionCallResponse>[];
     var sawToolCall = false;
-
-    await _adapter
-        .streamChatResponse()
-        .timeout(_streamTimeout)
-        .forEach((res) {
-      if (res is TextResponse) {
-        buffer.write(res.token);
-      } else if (res is FunctionCallResponse) {
-        sawToolCall = true;
-        toolCalls.add(res);
-      } else if (res is ParallelFunctionCallResponse) {
-        sawToolCall = true;
-        toolCalls.addAll(res.calls);
+    try {
+      final stream = _adapter.streamChatResponse().timeout(_streamTimeout);
+      await for (final res in stream) {
+        if (res is TextResponse) {
+          buffer.write(res.token);
+        } else if (res is FunctionCallResponse) {
+          sawToolCall = true;
+          toolCalls.add(res);
+        } else if (res is ParallelFunctionCallResponse) {
+          sawToolCall = true;
+          toolCalls.addAll(res.calls);
+        }
       }
-    });
-
-    if (sawToolCall) {
-      return _RondaResult(toolCalls: toolCalls);
+    } on TimeoutException {
+      debugPrint('GemmaService: _generarRonda timed out');
+    } catch (e) {
+      debugPrint('GemmaService: _generarRonda stream error — $e');
     }
+    if (sawToolCall) return _RondaResult(toolCalls: toolCalls);
     final text = buffer.toString();
-    if (text.trim().isNotEmpty) {
-      return _RondaResult(text: text);
-    }
+    if (text.trim().isNotEmpty) return _RondaResult(text: text);
     return null;
   }
 
@@ -598,6 +557,18 @@ class GemmaService {
     return useYachayOrchestrator
         ? SystemPrompt.buildYachay(_registry.listTools())
         : SystemPrompt.build(_registry.listTools());
+  }
+
+  String _yachaySystemPrompt() {
+    return useYachayOrchestrator
+        ? 'Eres Yachay, un tutor socrático de aritmética para estudiantes '
+            'de 1° de secundaria en Perú. "Yachay" significa sabiduría en '
+            'quechua. Guiá al estudiante con preguntas, nunca des respuestas '
+            'directas. Usá ejemplos del contexto peruano (soles, mercados, '
+            'chacras). Celebrá cuando el estudiante domina un tema. '
+            'Nunca digas "está mal" — decí "casi, probá de otra manera". ¡Allin!'
+        : 'Eres Aprendo+, un tutor de matemáticas para secundaria en Perú. '
+            'Explicá con claridad, paciencia y ejemplos del contexto local.';
   }
 
   bool _esSaludo(String message) {
@@ -688,6 +659,26 @@ class GemmaService {
       return 'Estoy aquí para ayudarte. ¿Qué tema te gustaría repasar hoy?';
     }
     return _dispatcher!.dispatch(userMessage);
+  }
+
+  Future<String> _dispatchPlainText(String userMessage) async {
+    try {
+      await _adapter.addQuery(Message.text(text: userMessage, isUser: true));
+      final buffer = StringBuffer();
+      final stream = _adapter.streamChatResponse().timeout(_streamTimeout);
+      await for (final res in stream) {
+        if (res is TextResponse && res.token.isNotEmpty) {
+          buffer.write(res.token);
+        }
+      }
+      final text = buffer.toString().trim();
+      if (text.isNotEmpty) return text;
+    } on TimeoutException {
+      debugPrint('GemmaService: plain-text stream timed out');
+    } catch (e) {
+      debugPrint('GemmaService: plain-text stream failed — $e');
+    }
+    return _dispatchFallback(userMessage);
   }
 
   List<Map<String, dynamic>> _fallbackEjercicios(String tema, String nivel) {
