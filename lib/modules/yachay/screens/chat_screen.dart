@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/data/learning_data.dart';
+
 /// A single message in the Yachay chat.
 @immutable
 class ChatMessage {
@@ -14,6 +16,35 @@ class ChatMessage {
   });
 }
 
+/// Summarises the current study session — topics touched, messages sent,
+/// and elapsed time. Used by REQ-07 (Session Summary Card).
+@immutable
+class SessionSummary {
+  final int topicsCovered;
+  final int messagesExchanged;
+  final Duration timeSpent;
+
+  const SessionSummary({
+    required this.topicsCovered,
+    required this.messagesExchanged,
+    required this.timeSpent,
+  });
+}
+
+/// Maps internal area keys to display-friendly Spanish names.
+const _areaNames = {
+  'comunicacion': 'Comunicación',
+  'matematica': 'Matemática',
+  'ciencia': 'Ciencia',
+};
+
+/// Maps internal priority keys to display labels with the "Prioridad" prefix.
+const _prioridadLabels = {
+  'alta': 'Prioridad alta',
+  'media': 'Prioridad media',
+  'baja': 'Prioridad baja',
+};
+
 /// Chat-first screen with message list, thinking indicator, context chips,
 /// and prompt bar. Pure presentational — accepts data as parameters.
 class ChatScreen extends StatelessWidget {
@@ -21,24 +52,69 @@ class ChatScreen extends StatelessWidget {
   final bool isThinking;
   final ValueChanged<String>? onSend;
 
+  /// Current curriculum topic driving the header, greeting, and chips.
+  final TemaPrimaria? currentTopic;
+
+  /// BKT P(learned) for current topic (0.0–1.0).  null → "Sin datos aún".
+  final double? masteryPercent;
+
+  /// Dynamic suggestion chips. null → default 4-chip set.
+  final List<String>? suggestionChips;
+
+  /// Session summary shown at top. null → hidden.
+  final SessionSummary? sessionSummary;
+
+  /// Called when a context chip is tapped. When provided the label is sent
+  /// directly (no hardcoded mapping). When null, falls back to [onSend]
+  /// with the legacy `label → message` map.
+  final ValueChanged<String>? onTopicChipTap;
+
   const ChatScreen({
     super.key,
     this.messages = const [],
     this.isThinking = false,
     this.onSend,
+    this.currentTopic,
+    this.masteryPercent,
+    this.suggestionChips,
+    this.sessionSummary,
+    this.onTopicChipTap,
   });
 
   static const _greetingText =
       '¡Hola! Soy Yachay, tu tutor de aritmética. ¿Qué querés aprender hoy?';
 
+  /// Builds the greeting, adapting the area when [currentTopic] is set.
+  static String _greetingFor(TemaPrimaria? topic) {
+    if (topic == null) return _greetingText;
+    final area = (_areaNames[topic.area] ?? topic.area).toLowerCase();
+    return '¡Hola! Soy Yachay, tu tutor de $area. ¿Qué querés aprender hoy?';
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayMessages = messages.isEmpty && !isThinking
-        ? [const ChatMessage(text: _greetingText, isUser: false)]
+        ? [ChatMessage(text: _greetingFor(currentTopic), isUser: false)]
         : messages;
+
+    final headerWidgets = <Widget>[];
+
+    // REQ-07: Session Summary Card (above messages, below topic header)
+    if (sessionSummary != null) {
+      headerWidgets.add(_SessionSummaryCard(summary: sessionSummary!));
+    }
+
+    // REQ-01: Topic Header Bar
+    if (currentTopic != null) {
+      headerWidgets.add(_TopicHeader(topic: currentTopic!));
+    }
+
+    // REQ-03: BKT Mastery Indicator
+    headerWidgets.add(_MasteryBar(masteryPercent: masteryPercent));
 
     return Column(
       children: [
+        if (headerWidgets.isNotEmpty) ...headerWidgets,
         Expanded(
           child: ListView.builder(
             reverse: false,
@@ -54,7 +130,10 @@ class ChatScreen extends StatelessWidget {
             },
           ),
         ),
-        _ContextChipRow(onChipTapped: _handleChip),
+        _ContextChipRow(
+          chips: suggestionChips ?? _ContextChipRow.defaultChips,
+          onChipTapped: _handleChip,
+        ),
         _PromptBar(
           enabled: !isThinking,
           onSend: onSend,
@@ -64,6 +143,14 @@ class ChatScreen extends StatelessWidget {
   }
 
   void _handleChip(String chipLabel) {
+    // When onTopicChipTap is provided, forward the label directly
+    // (no mapping — design intent for curriculum-driven chips).
+    if (onTopicChipTap != null) {
+      onTopicChipTap!(chipLabel);
+      return;
+    }
+
+    // Legacy fallback: translate label → message via hardcoded map.
     final chipMessages = <String, String>{
       'Explicar': 'Quiero explicar',
       'Practicar': 'Quiero practicar',
@@ -74,6 +161,226 @@ class ChatScreen extends StatelessWidget {
     onSend?.call(text);
   }
 }
+
+// =============================================================================
+// REQ-01: Topic Header Bar
+// =============================================================================
+
+/// Shows current topic area badge, title, and priority chip.
+class _TopicHeader extends StatelessWidget {
+  final TemaPrimaria topic;
+
+  const _TopicHeader({required this.topic});
+
+  /// Picks a colour per area so the badge is visually distinct.
+  static Color _colorForArea(String area) {
+    switch (area) {
+      case 'comunicacion':
+        return const Color(0xFFE65100); // deep orange
+      case 'matematica':
+        return const Color(0xFF1565C0); // blue
+      case 'ciencia':
+        return const Color(0xFF2E7D32); // green
+      default:
+        return Colors.grey;
+    }
+  }
+
+  static Color _colorForPrioridad(String prioridad) {
+    switch (prioridad) {
+      case 'alta':
+        return const Color(0xFFC62828);
+      case 'media':
+        return const Color(0xFFEF6C00);
+      case 'baja':
+        return const Color(0xFF757575);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final areaLabel = _areaNames[topic.area] ?? topic.area;
+    final prioridadLabel = _prioridadLabels[topic.prioridad] ?? topic.prioridad;
+
+    return Container(
+      key: const Key('topic-header'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          // Area badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _colorForArea(topic.area).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _colorForArea(topic.area).withValues(alpha: 0.4),
+              ),
+            ),
+            child: Text(
+              areaLabel,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _colorForArea(topic.area),
+              ),
+            ),
+          ),
+          // Topic title
+          Expanded(
+            child: Text(
+              topic.titulo,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Priority badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color:
+                  _colorForPrioridad(topic.prioridad).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color:
+                    _colorForPrioridad(topic.prioridad).withValues(alpha: 0.4),
+              ),
+            ),
+            child: Text(
+              prioridadLabel,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _colorForPrioridad(topic.prioridad),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// REQ-03: BKT Mastery Indicator
+// =============================================================================
+
+/// Thin progress bar + "Dominio: X%" label. Shows "Sin datos aún" when null.
+class _MasteryBar extends StatelessWidget {
+  final double? masteryPercent;
+
+  const _MasteryBar({required this.masteryPercent});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasData = masteryPercent != null;
+    final value = (masteryPercent ?? 0.0).clamp(0.0, 1.0);
+    final percentText = hasData ? '${(value * 100).round()}%' : '';
+
+    Color barColor() {
+      if (!hasData) return Colors.grey.shade300;
+      if (value >= 0.9) return Colors.green;
+      if (value >= 0.5) return Colors.orange;
+      return Colors.red;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: hasData
+                ? LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(barColor()),
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(3),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          if (hasData) const SizedBox(width: 10),
+          Text(
+            hasData ? 'Dominio: $percentText' : 'Sin datos aún',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// REQ-07: Session Summary Card
+// =============================================================================
+
+/// Subtle card above the message list summarising the session.
+class _SessionSummaryCard extends StatelessWidget {
+  final SessionSummary summary;
+
+  const _SessionSummaryCard({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final min = summary.timeSpent.inMinutes;
+    final tLabel =
+        '${summary.topicsCovered} ${summary.topicsCovered == 1 ? 'tema' : 'temas'}';
+    final mLabel =
+        '${summary.messagesExchanged} ${summary.messagesExchanged == 1 ? 'mensaje' : 'mensajes'}';
+
+    return Container(
+      key: const Key('session-summary-card'),
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('\u{1F4DA} ', style: TextStyle(fontSize: 14)),
+          Text(tLabel,
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(width: 12),
+          const Text('\u{1F4AC} ', style: TextStyle(fontSize: 14)),
+          Text(mLabel,
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(width: 12),
+          const Text('\u{23F1} ', style: TextStyle(fontSize: 14)),
+          Text('$min min',
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Message bubbles, thinking indicator, chips, and prompt bar
+// =============================================================================
 
 /// Renders a single chat bubble — user (right, blue) or Yachay (left, white).
 class _MessageBubble extends StatelessWidget {
@@ -90,7 +397,8 @@ class _MessageBubble extends StatelessWidget {
         : Key('yachay-bubble-msg-$index');
     final color = isUser ? const Color(0xFF1565C0) : Colors.white;
     final textColor = isUser ? Colors.white : Colors.black87;
-    final alignment = isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment =
+        isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -108,7 +416,8 @@ class _MessageBubble extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 14,
                     backgroundColor: Color(0xFF1565C0),
-                    child: Text('Y', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    child: Text('Y',
+                        style: TextStyle(color: Colors.white, fontSize: 12)),
                   ),
                 ),
               Flexible(
@@ -133,7 +442,8 @@ class _MessageBubble extends StatelessWidget {
                           ? const Radius.circular(4)
                           : const Radius.circular(16),
                     ),
-                    border: isUser ? null : Border.all(color: Colors.grey.shade300),
+                    border:
+                        isUser ? null : Border.all(color: Colors.grey.shade300),
                   ),
                   child: Text(
                     message.text,
@@ -165,7 +475,8 @@ class _ThinkingIndicator extends StatelessWidget {
           const CircleAvatar(
             radius: 14,
             backgroundColor: Color(0xFF1565C0),
-            child: Text('Y', style: TextStyle(color: Colors.white, fontSize: 12)),
+            child:
+                Text('Y', style: TextStyle(color: Colors.white, fontSize: 12)),
           ),
           const SizedBox(width: 8),
           Container(
@@ -246,13 +557,19 @@ class _AnimatedDotsState extends State<_AnimatedDots>
   }
 }
 
-/// Row of quick-action chips: Explicar, Practicar, Mi progreso, Cambiar tema.
+/// Row of quick-action chips — dynamic or default fallback.
 class _ContextChipRow extends StatelessWidget {
+  final List<String> chips;
   final ValueChanged<String>? onChipTapped;
 
-  const _ContextChipRow({this.onChipTapped});
+  const _ContextChipRow({required this.chips, this.onChipTapped});
 
-  static const _chips = ['Explicar', 'Practicar', 'Mi progreso', 'Cambiar tema'];
+  static const defaultChips = [
+    'Explicar',
+    'Practicar',
+    'Mi progreso',
+    'Cambiar tema'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +579,7 @@ class _ContextChipRow extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: _chips.map((label) {
+          children: chips.map((label) {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ActionChip(
@@ -314,8 +631,8 @@ class _PromptBarState extends State<_PromptBar> {
         top: false,
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.mic, color: Colors.grey),
+            const IconButton(
+              icon: Icon(Icons.mic, color: Colors.grey),
               onPressed: null,
               tooltip: 'Micrófono (próximamente)',
             ),
@@ -326,7 +643,9 @@ class _PromptBarState extends State<_PromptBar> {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _handleSend(),
                 decoration: InputDecoration(
-                  hintText: widget.enabled ? 'Escribí tu mensaje...' : 'Yachay está pensando...',
+                  hintText: widget.enabled
+                      ? 'Escribí tu mensaje...'
+                      : 'Yachay está pensando...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
