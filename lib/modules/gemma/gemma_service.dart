@@ -283,7 +283,6 @@ class GemmaService {
           topP: SamplingConfig.topP,
           repeatPenalty: SamplingConfig.repeatPenalty,
           tokenBuffer: 512,
-          randomSeed: 1,
         );
         _chatSessionOpen = true;
         _lifecycleClosed = false;
@@ -557,7 +556,7 @@ class GemmaService {
         buffer.write(token);
       }
       final text = buffer.toString().trim();
-      return text.isNotEmpty ? text : null;
+      return text.isNotEmpty ? truncateAtSentence(text) : null;
     } catch (_) {
       // Timeout or stream failure → null → caller falls back.
       return null;
@@ -789,7 +788,7 @@ class GemmaService {
       }
 
       final text = buffer.toString().trim();
-      if (text.isNotEmpty) return text;
+      if (text.isNotEmpty) return truncateAtSentence(text);
     } on TimeoutException {
       debugPrint('GemmaService: plain-text stream timed out');
     } catch (e) {

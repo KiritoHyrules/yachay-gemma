@@ -75,7 +75,7 @@ class ModelDownloadService {
       } on ModelDownloadException catch (e) {
         // Auth/storage failures are terminal: actionable error, no retry
         // loop (REQ-02, REQ-04).
-        _status.error(_messageFor(e.failure));
+        _status.error(messageFor(e.failure));
         return ModelDownloadResult(
           success: false,
           failure: e.failure,
@@ -92,7 +92,7 @@ class ModelDownloadService {
       await _verifier.deleteCorruptFile();
     }
 
-    _status.error(_messageFor(ModelDownloadFailure.corrupt));
+    _status.error(messageFor(ModelDownloadFailure.corrupt));
     return const ModelDownloadResult(
       success: false,
       failure: ModelDownloadFailure.corrupt,
@@ -100,8 +100,11 @@ class ModelDownloadService {
     );
   }
 
-  /// Actionable Spanish messages rendered by the status chip.
-  static String _messageFor(ModelDownloadFailure failure) {
+  /// Actionable Spanish message for a typed [ModelDownloadFailure].
+  ///
+  /// Public so the download page can render the same copy the chip shows
+  /// without duplicating the strings.
+  static String messageFor(ModelDownloadFailure failure) {
     switch (failure) {
       case ModelDownloadFailure.forbidden:
         return 'Acceso denegado por HuggingFace. Revisa tu token o acepta la '

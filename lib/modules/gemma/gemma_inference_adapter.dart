@@ -37,7 +37,6 @@ abstract class GemmaInferenceAdapter {
     double topP = 0.85,
     double repeatPenalty = 1.1,
     int tokenBuffer = 512,
-    int randomSeed = 1,
   });
 
   /// Feeds a message into the active chat session.
@@ -103,7 +102,6 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
     double topP = 0.85,
     double repeatPenalty = 1.1,
     int tokenBuffer = 512,
-    int randomSeed = 1,
   }) async {
     final model = _model;
     if (model == null) {
@@ -117,7 +115,6 @@ class FlutterGemmaInferenceAdapter implements GemmaInferenceAdapter {
       tools: tools,
       toolChoice: ToolChoice.auto,
       tokenBuffer: tokenBuffer,
-      randomSeed: randomSeed,
     );
   }
 

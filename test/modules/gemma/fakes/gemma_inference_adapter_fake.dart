@@ -90,7 +90,6 @@ class GemmaInferenceAdapterFake implements GemmaInferenceAdapter {
     double topP = 0.85,
     double repeatPenalty = 1.1,
     int tokenBuffer = 512,
-    int randomSeed = 1,
   }) async {
     createChatCalls++;
     this.systemInstruction = systemInstruction;
